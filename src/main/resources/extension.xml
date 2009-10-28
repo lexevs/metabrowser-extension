@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extensions xmlns="http://LexGrid.org/schema/LexBIG/2009/01/extensions/extension"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://LexGrid.org/schema/LexBIG/2009/01/extensions/extension http://LexGrid.org/schema/LexBIG/2009/01/extensions/extension.xsd">
+    <extension name="metabrowser-extension">
+        <description>MetaBrowser Relationship Utility Extension</description>
+        <provider>Mayo Clinic</provider>
+        <baseClass>org.LexGrid.lexevs.metabrowser.MetaBrowserService</baseClass>
+        <class>org.LexGrid.lexevs.metabrowser.impl.MetaBrowserServiceImpl</class>      
+        <implements>GenericExtension</implements>
+    </extension>
+</extensions>
