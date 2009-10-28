@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LexBIG_Registry>
+  <variables>
+    <lastUpdateTime value="1256737353321" />
+    <lastUsedDBIdentifer value="ed" />
+    <lastUsedHistoryIdentifer value="d7" />
+  </variables>
+  <codingSchemes>
+    <codingScheme urn="urn:oid:2.16.840.1.113883.3.26.1.2" dbURL="jdbc:hsqldb:file:src/test/resources/db/metabrowser-extension" dbName="" prefix="ea_" status="active" tag="PRODUCTION" version="200902_For_Test" deactivateDate="0" lastUpdateDate="1256730616207" />
+  </codingSchemes>
+  <histories />
+</LexBIG_Registry>
+
