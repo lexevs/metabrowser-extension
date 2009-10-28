@@ -14,11 +14,19 @@ public interface MetaBrowserService extends GenericExtension {
 
 	public Map<String, List<BySourceTabResults>> getBySourceTabDisplay(String cui, String source, List<String> relations, Direction direction) throws LBException;
 	
+	public Map<String, List<BySourceTabResults>> getBySourceTabDisplay(String cui, String source, List<String> relations, Direction direction, boolean excludeSelfReferencing) throws LBException;
+	
 	public Map<String, List<RelationshipTabResults>> getRelationshipsDisplay(String cui, List<String> relations, Direction direction) throws LBException;
+	
+	public Map<String, List<RelationshipTabResults>> getRelationshipsDisplay(String cui, List<String> relations, Direction direction, boolean excludeSelfReferencing) throws LBException;
 	
 	public int getCount(String cui, List<String> relations, Direction direction) throws LBException;
 	
+	public int getCount(String cui, List<String> relations, Direction direction, boolean excludeSelfReferencing) throws LBException;
+	
 	public int getCount(String cui, String source, List<String> relations, Direction direction) throws LBException;
+
+	public int getCount(String cui, String source, List<String> relations, Direction direction, boolean excludeSelfReferencing) throws LBException;
 	
 	public int getMaxToReturn() throws LBException;
 }

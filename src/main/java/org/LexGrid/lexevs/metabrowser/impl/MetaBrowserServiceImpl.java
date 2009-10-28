@@ -30,10 +30,6 @@ import org.lexgrid.loader.rrf.constants.RrfLoaderConstants;
 
 public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBrowserService {
 
-	/**
-	 * 
-	 */
-	
 	private static String CODING_SCHEME_NAME = "NCI MetaThesaurus";
 	
 	private static final long serialVersionUID = 1L;
@@ -87,9 +83,9 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		
 	*/
 		//System.out.println(impl.getMaxToReturn());
-		System.out.println("COUNT: " + impl.getCount("C0000726", "MSH", null, Direction.TARGETOF));
+		System.out.println("COUNT: " + impl.getCount("C0000726", null, null, Direction.TARGETOF));
 		
-		Map<String, List<BySourceTabResults>> bysource = impl.getBySourceTabDisplay("C0000726", "MSH", null, Direction.TARGETOF);
+		Map<String, List<BySourceTabResults>> bysource = impl.getBySourceTabDisplay("C0000726", null, null, Direction.TARGETOF);
 		
 		int count = 0;
 		for(String key : bysource.keySet()){
@@ -151,6 +147,12 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	
 	public Map<String, List<BySourceTabResults>> getBySourceTabDisplay(String cui,
 			String source, List<String> relationships, Direction direction) throws LBException {	
+		return getBySourceTabDisplay(cui,
+				source, relationships, direction, true);
+	}
+	
+	public Map<String, List<BySourceTabResults>> getBySourceTabDisplay(String cui,
+			String source, List<String> relationships, Direction direction, boolean excludeSelfReferencing) throws LBException {	
 		initExtension();
 		
 		PreparedStatement getRelations = null;
@@ -165,13 +167,9 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		
 		try {
 			getRelations = sqlInterface.modifyAndCheckOutPreparedStatement(
-					buildGetBySourceDisplaySql(source, direction, relationships));
+					buildGetBySourceDisplaySql(source, direction, relationships, excludeSelfReferencing));
 			
 			getRelations.setString(1, cui);
-			
-			if(source != null){
-				getRelations.setString(2, source);
-			}
 
 			System.out.println(getRelations);
 			rs = getRelations.executeQuery();
@@ -206,10 +204,18 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		}
 		return null;
 	}
-
+	
 	public Map<String, List<RelationshipTabResults>> getRelationshipsDisplay(String cui, 
 			List<String> relationships, 
 			Direction direction) throws LBException {
+		return getRelationshipsDisplay(cui, 
+				relationships, 
+				direction, true);
+	}
+
+	public Map<String, List<RelationshipTabResults>> getRelationshipsDisplay(String cui, 
+			List<String> relationships, 
+			Direction direction, boolean excludeSelfReferencing) throws LBException {
 		initExtension();
 		
 		PreparedStatement getRelations = null;
@@ -224,7 +230,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		
 		try {
 			getRelations = sqlInterface.modifyAndCheckOutPreparedStatement(
-					buildGetRelationshipsDisplaySql(direction, relationships));
+					buildGetRelationshipsDisplaySql(direction, relationships, excludeSelfReferencing));
 			
 			getRelations.setString(1, cui);
 
@@ -359,7 +365,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		}
 	}
 	
-	private String buildGetRelationshipsCountSql(Direction direction, List<String> relations) {
+	private String buildGetRelationshipsCountSql(Direction direction, List<String> relations, boolean excludeSelfReferencing) {
 		SQLInterface si = this.getSqlInterface();
 		String targetCol = null;
 		if(direction.equals(Direction.SOURCEOF)){
@@ -392,11 +398,14 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 						sb.append(" OR ");
 					}
 				}
-		
+				
+				if(excludeSelfReferencing){
+					sb.append(getExcludeSelfReferencingSql());
+				}
 		return sb.toString();
 	}
 	
-	private String buildBySourceCountSql(Direction direction, List<String> relations) {
+	private String buildBySourceCountSql(String source, Direction direction, List<String> relations,  boolean excludeSelfReferencing) {
 		SQLInterface si = this.getSqlInterface();
 		String targetCol = null;
 		if(direction.equals(Direction.SOURCEOF)){
@@ -420,9 +429,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
                  " = '"+ SOURCE_QUAL_VALUE + "' )" +
 	
 	             " WHERE " +
-	             targetCol  + " = ? " +
-	             " AND " +
-	             " sourceQual." + SQLTableConstants.TBLCOL_QUALIFIERVALUE + " = ? " +
+	             targetCol  + " = ? " +	           
 	             " AND " +
 	             targetCol + " != '" + ROOT + "' " +
 	             " AND " +
@@ -439,11 +446,19 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 						sb.append(" OR ");
 					}
 				}
+				
+				if(source != null){
+					sb.append(" AND " +
+						"sourceQual." + SQLTableConstants.TBLCOL_QUALIFIERVALUE + " =  '" + source + "'");
+				}
 		
+				if(excludeSelfReferencing){
+					sb.append(getExcludeSelfReferencingSql());
+				}
 		return sb.toString();
 	}
 	
-	private String buildGetRelationshipsDisplaySql(Direction direction, List<String> relations) {
+	private String buildGetRelationshipsDisplaySql(Direction direction, List<String> relations, boolean excludeSelfReferencing) {
 		SQLInterface si = this.getSqlInterface();
 		String sourceCol = null;
 		String targetCol = null;
@@ -509,10 +524,13 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 					}
 				}
 				
+				if(excludeSelfReferencing){
+					sb.append(getExcludeSelfReferencingSql());
+				}
 		return sb.toString();
 	}
 	
-	private String buildGetBySourceDisplaySql(String source, Direction direction, List<String> relations) {
+	private String buildGetBySourceDisplaySql(String source, Direction direction, List<String> relations,  boolean excludeSelfReferencing) {
 		SQLInterface si = this.getSqlInterface();
 		String sourceCol = null;
 		String targetCol = null;
@@ -634,9 +652,12 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 				
 				if(source != null){
 					sb.append(" AND " +
-						"assocSourceQual." + SQLTableConstants.TBLCOL_QUALIFIERVALUE + " = ? ");
+						"assocSourceQual." + SQLTableConstants.TBLCOL_QUALIFIERVALUE + " = '" + source + "'");
 				}
-
+				
+				if(excludeSelfReferencing){
+					sb.append(getExcludeSelfReferencingSql());
+				}
 		return sb.toString();
 	}
 	
@@ -651,9 +672,15 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		}
 		return returnList;
 	}
-
+	
 	public int getCount(String cui,
 			List<String> relationships, Direction direction) throws LBException {
+		return getCount(cui,
+				relationships, direction,  true);
+	}
+
+	public int getCount(String cui,
+			List<String> relationships, Direction direction,  boolean excludeSelfReferencing) throws LBException {
 		initExtension();
 		
 		PreparedStatement getRelations = null;
@@ -665,7 +692,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 
 		try {
 			getRelations = sqlInterface.modifyAndCheckOutPreparedStatement(
-					buildGetRelationshipsCountSql(direction, relationships));
+					buildGetRelationshipsCountSql(direction, relationships, excludeSelfReferencing));
 			
 			getRelations.setString(1, cui);
 			
@@ -691,8 +718,24 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		}	
 	}
 	
+	private String getExcludeSelfReferencingSql(){
+		StringBuffer sb = new StringBuffer();
+		sb.append(
+				" AND " +
+				sqlInterface.getSQLTableConstants().targetEntityCodeOrId +
+				" != " +
+				sqlInterface.getSQLTableConstants().sourceEntityCodeOrId);
+		return sb.toString();
+	}
+	
 	public int getCount(String cui, String source,
 			List<String> relationships, Direction direction) throws LBException {
+		return getCount(cui, source,
+				relationships, direction, true);
+	}
+	
+	public int getCount(String cui, String source,
+			List<String> relationships, Direction direction, boolean excludeSelfReferencing) throws LBException {
 		initExtension();
 		
 		PreparedStatement getRelations = null;
@@ -704,10 +747,9 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 
 		try {
 			getRelations = sqlInterface.modifyAndCheckOutPreparedStatement(
-					buildBySourceCountSql(direction, relationships));
+					buildBySourceCountSql(source, direction, relationships, excludeSelfReferencing));
 			
 			getRelations.setString(1, cui);
-			getRelations.setString(2, source);
 			
 			rs = getRelations.executeQuery();
 			if(!rs.next()){
