@@ -614,16 +614,16 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
                  " INNER JOIN " + si.getTableName(SQLTableConstants.ENTITY_PROPERTY) +
                  " {AS} entityProperty ON (" +
                  " entityProperty." + SQLTableConstants.TBLCOL_ENTITYCODENAMESPACE + 
-                 " = entityPropertyMultiAttrib. " + SQLTableConstants.TBLCOL_ENTITYCODENAMESPACE +
+                 " = entityPropertyMultiAttrib." + SQLTableConstants.TBLCOL_ENTITYCODENAMESPACE +
                  " AND " + 
                  " entityProperty." + si.getSQLTableConstants().entityCodeOrId + 
-                 " = entityPropertyMultiAttrib. " + si.getSQLTableConstants().entityCodeOrId +
+                 " = entityPropertyMultiAttrib." + si.getSQLTableConstants().entityCodeOrId +
                  " AND " + 
                  " entityProperty." + SQLTableConstants.TBLCOL_CODINGSCHEMENAME + 
-                 " = entityPropertyMultiAttrib. " + SQLTableConstants.TBLCOL_CODINGSCHEMENAME +
+                 " = entityPropertyMultiAttrib." + SQLTableConstants.TBLCOL_CODINGSCHEMENAME +
                  " AND " + 
                  " entityProperty." + SQLTableConstants.TBLCOL_PROPERTYID +
-                 " = entityPropertyMultiAttrib. " + SQLTableConstants.TBLCOL_PROPERTYID + " )" +
+                 " = entityPropertyMultiAttrib." + SQLTableConstants.TBLCOL_PROPERTYID + " )" +
                   
 	             " WHERE " +
 	             targetCol  + " = ? " +   
