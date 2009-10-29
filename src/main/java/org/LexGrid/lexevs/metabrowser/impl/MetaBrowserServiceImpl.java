@@ -58,53 +58,6 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	
 	private SQLInterface sqlInterface;
 
-	public static void main(String[] args) throws Exception {
-		/*
-		MetaBrowserService impl = 
-			(MetaBrowserService)LexBIGServiceImpl.defaultInstance().getGenericExtension("metabrowser-extension");
-		*/
-		
-		MetaBrowserService impl = new MetaBrowserServiceImpl();
-		//impl.initExtension();
-	/*
-		Map<String, List<RelationshipTabResults>> cl = impl.getRelationshipsDisplay("C0012634", "NDRFT", Direction.TARGETOF);
-		
-		for(String key : cl.keySet()){
-			System.out.println(key);
-			for(RelationshipTabResults ac : cl.get(key)){
-				System.out.println("--" + ac.getCui());
-				System.out.println("  --Name: " + ac.getName());
-				System.out.println("  --Rel: " + ac.getRel());
-				System.out.println("  --Rela: " + ac.getRela());
-				System.out.println("  --Source: " + ac.getSource());
-			}
-		}
-		
-		
-	*/
-		//System.out.println(impl.getMaxToReturn());
-		System.out.println("COUNT: " + impl.getCount("C0000726", null, null, Direction.TARGETOF));
-		
-		Map<String, List<BySourceTabResults>> bysource = impl.getBySourceTabDisplay("C0000726", null, null, Direction.TARGETOF);
-		
-		int count = 0;
-		for(String key : bysource.keySet()){
-			//System.out.println(key);
-			for(BySourceTabResults ac : bysource.get(key)){
-				count++;
-				System.out.println("--" + ac.getCui());
-				System.out.println("  --Name: " + ac.getTerm());
-				System.out.println("  --Rel: " + ac.getRel());
-				System.out.println("  --Rela: " + ac.getRela());
-				System.out.println("  --Source: " + ac.getSource());
-				System.out.println("  --Type: " + ac.getType());
-				System.out.println("  --Code: " + ac.getCode());
-			}
-		}
-		System.out.println("Actual Count: " + count);
-		//System.out.println(impl.getCount("C0012634", null, Direction.TARGETOF));
-	}
-
 	public void initExtension() throws LBException{
 		CodingSchemeVersionOrTag tagOrVersion = null;
 		String codingSchemeName = CODING_SCHEME_NAME;
