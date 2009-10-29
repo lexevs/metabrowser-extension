@@ -51,10 +51,10 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	
 	private int maxToReturn;
 	
-	private List<String> associations = new ArrayList<String>();
+	private List<String> associations;
 	
 	private Map<String,String> associationReverseNames = new HashMap<String,String>();
-	private Map<String,String> relaReverseNames = new HashMap<String,String>();
+	private Map<String,String> relaReverseNames;
 	
 	private SQLInterface sqlInterface;
 
@@ -127,13 +127,17 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		 
 		 this.internalVersion = version;
 		 
-		 MrDocLoader mrdocLoader = new MrDocLoader();
-		 relaReverseNames = mrdocLoader.getRelasAndReverseRelas();
+		 if(relaReverseNames == null){
+			 MrDocLoader mrdocLoader = new MrDocLoader();
+			 relaReverseNames = mrdocLoader.getRelasAndReverseRelas();
+		 }
 		 
 		 maxToReturn = rm.getSystemVariables().getMaxResultSize();
 		 
 		 try {
-			this.associations = buildAssociationList();
+			 if(associations == null){
+				 associations = buildAssociationList();
+			 }
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -171,7 +175,6 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 			
 			getRelations.setString(1, cui);
 
-			System.out.println(getRelations);
 			rs = getRelations.executeQuery();
 			return buildBySourceTabResults(rs, map, direction);	
 		} catch (SQLException e) {
