@@ -44,7 +44,19 @@
       </fileset>
     </copy>
   	
-    <jar jarfile="${dist}/${extension.name}.jar" basedir="${build}"/>
+    <jar jarfile="${dist}/${extension.name}.jar" basedir="${build}">
+    	<exclude name="**/metabrowser/*.class"/>
+    </jar>
+  	
+    <jar jarfile="${dist}/${extension.name}-local-client.jar" basedir="${build}">
+    	<include name="**/metabrowser/*.class"/>
+    	<include name="**/model/**"/>
+    </jar>
+  	
+    <jar jarfile="${dist}/${extension.name}-distributed-client.jar" basedir="${build}">
+    	<include name="**/*"/>
+    </jar>
+  	
   </target>
 	
   <target name="clean"
