@@ -11,14 +11,18 @@ import java.util.Map;
 import org.LexGrid.LexBIG.DataModel.Core.CodingSchemeVersionOrTag;
 import org.LexGrid.LexBIG.DataModel.InterfaceElements.ExtensionDescription;
 import org.LexGrid.LexBIG.Exceptions.LBException;
+import org.LexGrid.LexBIG.Impl.LexBIGServiceImpl;
 import org.LexGrid.LexBIG.Impl.Extensions.AbstractExtendable;
 import org.LexGrid.LexBIG.Impl.dataAccess.ResourceManager;
 import org.LexGrid.LexBIG.Impl.dataAccess.SQLImplementedMethods;
 import org.LexGrid.LexBIG.Impl.dataAccess.SQLInterface;
 import org.LexGrid.LexBIG.Impl.internalExceptions.MissingResourceException;
+import org.LexGrid.LexBIG.LexBIGService.LexBIGService;
+import org.LexGrid.annotations.LgClientSideSafe;
 import org.LexGrid.codingSchemes.CodingScheme;
 import org.LexGrid.commonTypes.Source;
 import org.LexGrid.lexevs.metabrowser.MetaBrowserService;
+import org.LexGrid.lexevs.metabrowser.MetaTree;
 import org.LexGrid.lexevs.metabrowser.helper.MrDocLoader;
 import org.LexGrid.lexevs.metabrowser.model.BySourceTabResults;
 import org.LexGrid.lexevs.metabrowser.model.RelationshipTabResults;
@@ -30,7 +34,14 @@ import org.lexgrid.loader.rrf.constants.RrfLoaderConstants;
 
 public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBrowserService {
 
-	private static String CODING_SCHEME_NAME = "NCI MetaThesaurus";
+	public static String CODING_SCHEME_NAME = "NCI MetaThesaurus";
+	
+	private static String NCI_SOURCE = "NCI";
+	private static String NCI_ROOT = "C1140168";
+	public static String CHD_REL = "CHD";
+	public static String PAR_REL = "PAR";
+	
+	private transient LexBIGService lbs;
 	
 	private static final long serialVersionUID = 1L;
 	private static String SOURCE_QUAL_COL = "sourceQualifier";
@@ -45,6 +56,8 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	private static String AUI_QUAL_VALUE = RrfLoaderConstants.AUI_QUALIFIER;
 	private static String ROOT = "@";
 	private static String TAIL = "@@";
+	
+	private Map<String,String> sabRootNodeCache = new HashMap<String,String>();
 	
 	private String internalName;
 	private String internalVersion;
@@ -744,5 +757,45 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		ed.setName("metabrowser-extension");
 		ed.setVersion("1.0");
 		return ed;
+	}
+
+	@LgClientSideSafe 
+	public MetaTree getMetaNCINeighborhood(String focus, int levelsParents) throws LBException {
+		return getMetaNeighborhood(focus, NCI_SOURCE, levelsParents);	
+	}
+	
+	public MetaTree getMetaNCINeighborhood() throws LBException {
+		sabRootNodeCache.put(NCI_SOURCE, NCI_ROOT);
+		return getMetaNeighborhood(NCI_SOURCE);	
+	}
+
+	public MetaTree getMetaNeighborhood(String focus, String source,
+			int levelsParents) throws LBException {
+		MetaBrowserService svc = this;
+		return new  MetaTreeImpl(svc, focus, source, levelsParents);	
+	}
+
+	public MetaTree getMetaNeighborhood(String source) throws LBException {
+		MetaBrowserService svc = this;
+		if(sabRootNodeCache.containsKey(source)){
+			return new MetaTreeImpl(svc, sabRootNodeCache.get(source), source, -1);
+		} else {
+			MetaTree tree = new MetaTreeImpl(svc, source);	
+			sabRootNodeCache.put(source, tree.getCurrentFocus().getCui());
+			return tree;
+		}
+	}
+
+	@LgClientSideSafe 
+	public void setLexBIGService(LexBIGService lbs) throws LBException {
+		this.lbs = lbs;	
+	}
+	
+	@LgClientSideSafe 
+	public LexBIGService getLexBIGService() throws LBException {
+		if(lbs == null){
+			lbs = LexBIGServiceImpl.defaultInstance();
+		} 
+		return lbs;
 	}
 }
