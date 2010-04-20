@@ -1,6 +1,7 @@
 <project name="CustomExtensionExample" default="dist" basedir=".">
 
   <!-- set global properties for this build -->
+  <property name="version" value="1.1.7"/>
   <property name="src" location="src/main/java"/>
   <property name="build" location="build"/>
   <property name="dist"  location="dist"/>
@@ -33,7 +34,7 @@
    	</javac>
   </target>
 
-  <target name="dist" depends="compile"
+  <target name="dist" depends="compile, javadoc"
         description="generate the distribution" >
     <!-- Create the distribution directory -->
     <mkdir dir="${dist}"/>
@@ -44,20 +45,26 @@
       </fileset>
     </copy>
   	
-    <jar jarfile="${dist}/${extension.name}.jar" basedir="${build}">
-    	<exclude name="**/metabrowser/*.class"/>
+    <jar jarfile="${dist}/${extension.name}-${version}.jar" basedir="${build}">
+    	<!--<exclude name="**/metabrowser/*.class"/>-->
     </jar>
   	
-    <jar jarfile="${dist}/${extension.name}-local-client.jar" basedir="${build}">
+    <jar jarfile="${dist}/${extension.name}-local-client-${version}.jar" basedir="${build}">
     	<include name="**/metabrowser/*.class"/>
     	<include name="**/model/**"/>
     </jar>
   	
-    <jar jarfile="${dist}/${extension.name}-distributed-client.jar" basedir="${build}">
+    <jar jarfile="${dist}/${extension.name}-distributed-client-${version}.jar" basedir="${build}">
     	<include name="**/*"/>
     </jar>
   	
   </target>
+	
+	  <target name="javadoc" description="Generates the Javadoc of the application">
+	    <javadoc sourcepath="${src}" 
+	             packagenames="*" 
+	             destdir="${dist}/apidocs"/>
+	  </target>
 	
   <target name="clean"
         description="clean up" >

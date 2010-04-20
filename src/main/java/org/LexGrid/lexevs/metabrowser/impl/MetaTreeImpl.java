@@ -1,14 +1,31 @@
+/*
+ * Copyright: (c) 2004-2009 Mayo Foundation for Medical Education and 
+ * Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
+ * triple-shield Mayo logo are trademarks and service marks of MFMER.
+ *
+ * Except as contained in the copyright notice above, or as used to identify 
+ * MFMER as the author of this software, the trade names, trademarks, service
+ * marks, or product names of the copyright holder shall not be used in
+ * advertising, promotion or otherwise in connection with this software without
+ * prior written authorization of the copyright holder.
+ * 
+ * Licensed under the Eclipse Public License, Version 1.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at 
+ * 
+ * 		http://www.eclipse.org/legal/epl-v10.html
+ * 
+ */
 package org.LexGrid.lexevs.metabrowser.impl;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.LexGrid.LexBIG.DataModel.Core.ResolvedConceptReference;
 import org.LexGrid.LexBIG.Exceptions.LBException;
 import org.LexGrid.LexBIG.Impl.LexBIGServiceImpl;
 import org.LexGrid.LexBIG.LexBIGService.CodedNodeSet;
+import org.LexGrid.LexBIG.LexBIGService.LexBIGService;
 import org.LexGrid.LexBIG.LexBIGService.CodedNodeSet.PropertyType;
 import org.LexGrid.LexBIG.Utility.Constructors;
 import org.LexGrid.commonTypes.Source;
@@ -17,169 +34,159 @@ import org.LexGrid.concepts.Presentation;
 import org.LexGrid.lexevs.metabrowser.MetaBrowserService;
 import org.LexGrid.lexevs.metabrowser.MetaTree;
 import org.LexGrid.lexevs.metabrowser.MetaBrowserService.Direction;
+import org.LexGrid.lexevs.metabrowser.helper.ChildIterator;
+import org.LexGrid.lexevs.metabrowser.helper.ChildPagingJsonConverter;
 import org.LexGrid.lexevs.metabrowser.model.BySourceTabResults;
 import org.LexGrid.lexevs.metabrowser.model.MetaTreeNode;
 import org.LexGrid.lexevs.metabrowser.model.MetaTreeNode.ExpandedState;
 
-@org.LexGrid.annotations.LgHasRemoteDependencies
+/**
+ * The Class MetaTreeImpl.
+ * 
+ * @author <a href="mailto:kevin.peterson@mayo.edu">Kevin Peterson</a>
+ */
 public class MetaTreeImpl implements MetaTree {
 
+	/** The Constant serialVersionUID. */
 	private static final long serialVersionUID = -143953173771075028L;
 
-	private Map<String,MetaTreeNode> treeNodes = new HashMap<String,MetaTreeNode>();
-	
+	/** The CH d_ rel. */
 	private String CHD_REL = MetaBrowserServiceImpl.CHD_REL;
 	private String PAR_REL = MetaBrowserServiceImpl.PAR_REL;
+	
+	/** The CODIN g_ schem e_ name. */
 	private static String CODING_SCHEME_NAME = MetaBrowserServiceImpl.CODING_SCHEME_NAME;
 	
-
-	@org.LexGrid.annotations.LgProxyField
+	/** The service. */
 	private transient MetaBrowserService service;
 	
+	/** The source. */
 	private String source;
 	
+	/** The current focus. */
 	private MetaTreeNode currentFocus;
 	
-	public MetaTreeImpl();
+	/**
+	 * Instantiates a new meta tree impl.
+	 */
+	public MetaTreeImpl(){};
 	
+	/**
+	 * Instantiates a new meta tree impl.
+	 * 
+	 * @param service the service
+	 * @param source the source
+	 * 
+	 * @throws LBException the LB exception
+	 */
 	public MetaTreeImpl(MetaBrowserService service, String source) throws LBException {
 		this.source = source;
 		this.service = service;
 		currentFocus = setInitialFocus();
 	}
 	
-	public MetaTreeImpl(MetaBrowserService service, String focus, String source, int levels) throws LBException {
+	/**
+	 * Instantiates a new meta tree impl.
+	 * 
+	 * @param service the service
+	 * @param focus the focus
+	 * @param source the source
+	 * 
+	 * @throws LBException the LB exception
+	 */
+	public MetaTreeImpl(MetaBrowserService service, String focus, String source) throws LBException {
 		this.source = source;
 		this.service = service;
-		currentFocus = setInitialFocus(focus, levels);
+		currentFocus = setInitialFocus(focus);
 	}
 
-	protected MetaTreeNode focusMetaTreeNode(MetaTreeNode treeNode) throws LBException{
-		ExpandedState state = treeNode.getExpandedState();
-		if(state.equals(ExpandedState.EXPANDED)){
-			System.out.println("Already Expanded");
-			return treeNode;
-		} 
-		
-		if(state.equals(ExpandedState.EXPANDABLE)){
-			treeNode.setChildren(
-					getChildren(treeNode));
-		} else if(state.equals(ExpandedState.EXPANDABLE_PARENT)){
-			List<MetaTreeNode> foundChildren = getChildren(treeNode);
-			List<MetaTreeNode> alreadyAddedChildren = treeNode.getChildren();
-			
-			List<String> cuis = getCuiList(alreadyAddedChildren);
-			for(MetaTreeNode child : foundChildren){
-				if(!cuis.contains(child.getCui())){
-					treeNode.getChildren().add(child);
-				}
-			}
-		} else {
-			throw new LBException("Cannot focus on a node that is in state: " + state);
-		}
-		
-		treeNode.setExpandedState(ExpandedState.EXPANDED);
-		
-		return treeNode;
+	
+	/**
+	 * Gets the children.
+	 * 
+	 * @param focus the focus
+	 * 
+	 * @return the children
+	 * 
+	 * @throws LBException the LB exception
+	 */
+	private ChildIterator getChildren(MetaTreeNode focus) throws LBException{
+		return this.getChildren(focus, null);
 	}
 	
-	private List<MetaTreeNode> getChildren(MetaTreeNode focus) throws LBException{
-		List<MetaTreeNode> returnList = new ArrayList<MetaTreeNode>();
-		
+	private ChildIterator getChildren(MetaTreeNode focus, MetaTreeNode parent) throws LBException{
+		List<String> rels = new ArrayList<String>();
+		rels.add(CHD_REL);
+
+		return new ChildIterator(
+				focus.getCui(), 
+				source, 
+				rels, 
+				Direction.SOURCEOF, 
+				getService(), 
+				parent,
+				focus.getChildrenCount());
+	}
+	
+	private List<MetaTreeNode> getParents(MetaTreeNode focus) throws LBException{
 		List<String> rels = new ArrayList<String>();
 		rels.add(CHD_REL);
 		
-		Map<String,List<BySourceTabResults>> results = service.getBySourceTabDisplay(focus.getCui(), source, rels, Direction.SOURCEOF);
-		List<BySourceTabResults> relations = results.get(CHD_REL);
+		List<BySourceTabResults> results =
+			getService().getBySourceTabDisplay(focus.getCui(), source, rels, Direction.TARGETOF, true, 0, -1).get(PAR_REL);
 
-		for(BySourceTabResults result : relations){
-			MetaTreeNode foundNode = buildMetaTreeNode(result);
-			
-			List<MetaTreeNode> parent = new ArrayList<MetaTreeNode>();
-			parent.add(focus);
-			foundNode.setParents(parent);
-			int children = service.getCount(foundNode.getCui(), source, rels, Direction.SOURCEOF);
-			
-			if(children > 0){
-				foundNode.setExpandedState(ExpandedState.EXPANDABLE);
-			} else {
-				foundNode.setExpandedState(ExpandedState.LEAF);
-			}
-			returnList.add(foundNode);
-		}
-		if(returnList.size() == 0){
-			return null;
-		}
-		return returnList;
-	}
-	
-	private List<MetaTreeNode> getParents(MetaTreeNode focus, int level) throws LBException{
+		if(results == null || results.size() == 0){return null;}
+		
 		List<MetaTreeNode> returnList = new ArrayList<MetaTreeNode>();
 		
-		List<String> rels = new ArrayList<String>();
-		rels.add(CHD_REL);
-		
-		Map<String,List<BySourceTabResults>> results = service.getBySourceTabDisplay(focus.getCui(), source, rels, Direction.TARGETOF);
-		List<BySourceTabResults> relations = results.get(PAR_REL);
-		
-		for(BySourceTabResults result : relations){
-			MetaTreeNode foundNode = buildMetaTreeNode(result);
-			foundNode.setExpandedState(ExpandedState.EXPANDABLE_PARENT);
-			if(level > 0 || level < 0){
-				foundNode.setParents(
-						getParents(foundNode, level - 1));
-			}
-			List<MetaTreeNode> childList = new ArrayList<MetaTreeNode>();
-			childList.add(focus);
+		for(BySourceTabResults bySource : results){
+			String cui = bySource.getCui();
+			String name = bySource.getTerm();
 			
-			List<MetaTreeNode> children = this.getChildren(foundNode);
-			if(children != null){
-				for(MetaTreeNode child : children){
-					if(child.getCui().equals(focus.getCui())){
-						childList.add(child);
-					}
-				}
-			}
-			foundNode.setChildren(childList);
-			returnList.add(foundNode);
+			MetaTreeNode parent = this.buildMetaTreeNode(cui, name);
+			
+			parent.setChildrenCount(getService().getCount(cui, source, rels, Direction.SOURCEOF, true));
+			
+			parent.setChildren(this.getChildren(parent, focus));
+
+			parent.getPathToRootChilden().add(focus);
+			parent.setExpandedState(ExpandedState.EXPANDABLE);
+			
+			parent.setParents(getParents(parent));
+			returnList.add(parent);
 		}
-		if(returnList.size() == 0){
-			return null;
-		}
+		
 		return returnList;
 	}
 	
+	/**
+	 * Builds the meta tree node.
+	 * 
+	 * @param cui the cui
+	 * @param term the term
+	 * 
+	 * @return the meta tree node
+	 */
 	private MetaTreeNode buildMetaTreeNode(String cui, String term){
 		MetaTreeNode node = new MetaTreeNode();
+		
 		node.setCui(cui);
 		node.setName(term);
-		registerMetaTreeNode(node);
+		node.setSab(source);
 		return node;
-	}
-	
-	private MetaTreeNode buildMetaTreeNode(BySourceTabResults tab){
-		return 
-			this.buildMetaTreeNode(
-				tab.getCui(), tab.getTerm());
-	}
-	
-	private void registerMetaTreeNode(MetaTreeNode node){
-		this.treeNodes.put(node.getCui(), node);
-	}
-	
-	private MetaTreeNode getRegisteredMetaTreeNode(String cui){
-		return this.treeNodes.get(cui);
 	}
 	
 	/**
 	 * Gets the UMLS root node of a given SAB.
-	 *
-	 * @param sab
-	 * @return
-	 * @throws LBException
+	 * 
+	 * @param sab the sab
+	 * 
+	 * @return the coding scheme root
+	 * 
+	 * @throws LBException the LB exception
 	 */
 	protected ResolvedConceptReference getCodingSchemeRoot(String sab) throws LBException {
-		CodedNodeSet cns = service.getLexBIGService().getNodeSet(CODING_SCHEME_NAME, null, null);
+		CodedNodeSet cns = getService().getLexBIGService().getNodeSet(CODING_SCHEME_NAME, null, null);
 
 		cns = cns.restrictToProperties(null, new PropertyType[] {PropertyType.PRESENTATION}, Constructors.createLocalNameList("SRC"), null, Constructors.createNameAndValueList("source-code", "V-"+sab));
 		ResolvedConceptReference[] refs = cns.resolveToList(null, null, null, null, false, -1).getResolvedConceptReference();
@@ -193,89 +200,139 @@ public class MetaTreeImpl implements MetaTree {
 		return refs[0];
 	}
 	
-	
-	private List<String> getCuiList(List<MetaTreeNode> nodes){
-		List<String> returnList = new ArrayList<String>();
-		for(MetaTreeNode node : nodes){
-			returnList.add(node.getCui());
-		}
-		return returnList;
-	}
-	
-	private MetaTreeNode setInitialFocus(String cui, int levelsParents) throws LBException {	
+	/**
+	 * Sets the initial focus.
+	 * 
+	 * @param cui the cui
+	 * 
+	 * @return the meta tree node
+	 * 
+	 * @throws LBException the LB exception
+	 */
+	private MetaTreeNode setInitialFocus(String cui) throws LBException {	
 		MetaTreeNode focusNode = this.getFocusDetails(cui);
+		
+		List<String> rels = new ArrayList<String>();
+		rels.add(CHD_REL);
+	
+		int childrenCount = getService().getCount(cui, source, rels, Direction.SOURCEOF, true);
+		focusNode.setChildrenCount(childrenCount);
 
-		focusNode.setParents(getParents(focusNode, levelsParents));
-		List<MetaTreeNode> children = getChildren(focusNode);
+		ChildIterator children = getChildren(focusNode);
 
-		if(children != null){
-			focusNode.setExpandedState(ExpandedState.EXPANDED);
+		if(childrenCount > 0){
+			focusNode.setExpandedState(ExpandedState.EXPANDABLE);
 		} else {
 			focusNode.setExpandedState(ExpandedState.LEAF);
 		}
 		focusNode.setChildren(children);
 
-		List<MetaTreeNode> parents = focusNode.getParents();
-		if(parents != null){
-			for(MetaTreeNode node : parents){
-				node = this.focusMetaTreeNode(node);
-			}
-		}
+		focusNode.setParents(
+				this.getParents(focusNode));
+		
 		return focusNode;
 	}
+	
+	/**
+	 * Sets the initial focus.
+	 * 
+	 * @return the meta tree node
+	 * 
+	 * @throws LBException the LB exception
+	 */
 	private MetaTreeNode setInitialFocus() throws LBException {	
+		List<String> rels = new ArrayList<String>();
+		rels.add(CHD_REL);
+		
 		ResolvedConceptReference ref = getCodingSchemeRoot(source);
 		MetaTreeNode focusNode = 
 			this.buildMetaTreeNode(
 					ref.getCode(), 
 					ref.getEntityDescription().getContent());	
+		
+		int childrenCount = getService().getCount(ref.getCode(), source, rels, Direction.SOURCEOF, true);
+		
+		focusNode.setChildrenCount(childrenCount);
 
-		focusNode.setParents(getParents(focusNode, 0));
-		List<MetaTreeNode> children = getChildren(focusNode);
+		ChildIterator children = getChildren(focusNode);
 
-		if(children != null){
-			focusNode.setExpandedState(ExpandedState.EXPANDED);
+		if(childrenCount > 0){
+			focusNode.setExpandedState(ExpandedState.EXPANDABLE);
 		} else {
 			focusNode.setExpandedState(ExpandedState.LEAF);
 		}
+		
 		focusNode.setChildren(children);
+		
+		focusNode.setParents(
+				this.getParents(focusNode));
 
 		return focusNode;	
 	}
 
-	public MetaTree focusMetaTreeNode(String cui) throws LBException {
-		MetaTreeNode node = this.getRegisteredMetaTreeNode(cui);
-		this.currentFocus = this.focusMetaTreeNode(node);
-		return this;
-	}
-
+	/* (non-Javadoc)
+	 * @see org.LexGrid.lexevs.metabrowser.MetaTree#getCurrentFocus()
+	 */
 	public MetaTreeNode getCurrentFocus() {
 		return this.currentFocus;
 	}
-
-	public ExpandedState getExpandedState(String cui) {
-		MetaTreeNode node = this.getRegisteredMetaTreeNode(cui);
-		if(node == null){
-			return ExpandedState.UNKNOWN;
-		} else {
-			return node.getExpandedState();
-		}
-	}
 	
+	
+
+	/* (non-Javadoc)
+	 * @see org.LexGrid.lexevs.metabrowser.MetaTree#focus(org.LexGrid.lexevs.metabrowser.model.MetaTreeNode)
+	 */
+	public MetaTreeNode focus(MetaTreeNode newFocus) {
+		if(newFocus.getExpandedState().equals(ExpandedState.EXPANDABLE)){
+			try {
+				newFocus.setChildren(this.getChildren(newFocus));
+			} catch (LBException e) {
+				throw new RuntimeException(e);
+			}
+		}
+		this.currentFocus = newFocus;
+		
+		try {
+			currentFocus.setParents(
+					this.getParents(newFocus));
+		
+		} catch (LBException e) {
+			throw new RuntimeException(e);
+		}
+		
+		return newFocus;
+	}
+
+	/**
+	 * Gets the focus details.
+	 * 
+	 * @param cui the cui
+	 * 
+	 * @return the focus details
+	 * 
+	 * @throws LBException the LB exception
+	 */
 	private MetaTreeNode getFocusDetails(String cui) throws LBException {
 		CodedNodeSet cns = LexBIGServiceImpl.defaultInstance().getCodingSchemeConcepts(CODING_SCHEME_NAME, null);
 		cns = cns.restrictToCodes(Constructors.createConceptReferenceList(cui));
-		ResolvedConceptReference ref = cns.resolveToList(null, null, new PropertyType[]{PropertyType.PRESENTATION}, 1).getResolvedConceptReference(0);
+		ResolvedConceptReference ref = cns.resolve(null, null, new PropertyType[]{PropertyType.PRESENTATION}).next();
 		return buildMetaTreeNode(cui, 
 				getBestSabTermString(
 						ref.getReferencedEntry()));	
 	}
 	
+	/**
+	 * Gets the best sab term string.
+	 * 
+	 * @param entity the entity
+	 * 
+	 * @return the best sab term string
+	 */
 	private String getBestSabTermString(Entity entity){
 		Presentation bestPres = null;
 		for(Presentation pres : entity.getPresentation()){
 			for(Source source : pres.getSource()){
-				if(source.equals(source)){
+				if(source.getContent().equals(source)){
 					if(bestPres == null){
 						bestPres = pres;
 					} else {
@@ -292,7 +349,40 @@ public class MetaTreeImpl implements MetaTree {
 		return bestPres.getValue().getContent();
 	}
 	
+	/**
+	 * Sets the service.
+	 * 
+	 * @param service the new service
+	 */
 	public void setService(MetaBrowserService service) {
 		this.service = service;
 	}
+	
+	public MetaBrowserService getService() {
+		if(this.service != null){
+			return this.service;
+		} else {
+			LexBIGService lbs = LexBIGServiceImpl.defaultInstance();
+		
+			try {
+				return (MetaBrowserService) lbs.getGenericExtension("metabrowser-extension");
+			} catch (LBException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
+	
+	/* (non-Javadoc)
+	 * @see org.LexGrid.lexevs.metabrowser.MetaTree#getSab()
+	 */
+	public String getSab(){
+		return this.source;
+	}
+
+	public String getJsonFromRoot(MetaTreeNode node) {
+		ChildPagingJsonConverter converter = new ChildPagingJsonConverter();
+		return converter.buildJsonPathFromRootTree(node);
+	}
+	
+	
 }

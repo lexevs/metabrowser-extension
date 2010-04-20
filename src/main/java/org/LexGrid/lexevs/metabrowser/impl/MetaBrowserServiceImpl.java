@@ -1,3 +1,21 @@
+/*
+ * Copyright: (c) 2004-2009 Mayo Foundation for Medical Education and 
+ * Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
+ * triple-shield Mayo logo are trademarks and service marks of MFMER.
+ *
+ * Except as contained in the copyright notice above, or as used to identify 
+ * MFMER as the author of this software, the trade names, trademarks, service
+ * marks, or product names of the copyright holder shall not be used in
+ * advertising, promotion or otherwise in connection with this software without
+ * prior written authorization of the copyright holder.
+ * 
+ * Licensed under the Eclipse Public License, Version 1.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at 
+ * 
+ * 		http://www.eclipse.org/legal/epl-v10.html
+ * 
+ */
 package org.LexGrid.lexevs.metabrowser.impl;
 
 import java.sql.PreparedStatement;
@@ -32,45 +50,99 @@ import org.LexGrid.util.sql.lgTables.SQLTableConstants;
 import org.lexgrid.loader.meta.constants.MetaLoaderConstants;
 import org.lexgrid.loader.rrf.constants.RrfLoaderConstants;
 
+/**
+ * The Class MetaBrowserServiceImpl.
+ * 
+ * @author <a href="mailto:kevin.peterson@mayo.edu">Kevin Peterson</a>
+ */
 public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBrowserService {
 
+	/** The CODIN g_ schem e_ name. */
 	public static String CODING_SCHEME_NAME = "NCI MetaThesaurus";
 	
+	/** The NC i_ source. */
 	private static String NCI_SOURCE = "NCI";
+	
+	/** The NC i_ root. */
 	private static String NCI_ROOT = "C1140168";
+	
+	/** The CH d_ rel. */
 	public static String CHD_REL = "CHD";
+	
+	/** The PA r_ rel. */
 	public static String PAR_REL = "PAR";
 	
+	/** The lbs. */
 	private transient LexBIGService lbs;
 	
+	/** The Constant serialVersionUID. */
 	private static final long serialVersionUID = 1L;
+	
+	/** The SOURC e_ qua l_ col. */
 	private static String SOURCE_QUAL_COL = "sourceQualifier";
+	
+	/** The REL a_ qua l_ col. */
 	private static String RELA_QUAL_COL = "relaQualifier";
+	
+	/** The RE l_ col. */
 	private static String REL_COL = "rel";
+	
+	/** The SOURC e_ cod e_ qua l_ col. */
 	private static String SOURCE_CODE_QUAL_COL = "sourceCodeQualifier";
+	
+	/** The SOURC e_ qua l_ value. */
 	private static String SOURCE_QUAL_VALUE = MetaLoaderConstants.SOURCE_QUALIFIER;
+	
+	/** The SOURC e_ cod e_ qua l_ value. */
 	private static String SOURCE_CODE_QUAL_VALUE = MetaLoaderConstants.SOURCE_CODE_QUALIFIER;
+	
+	/** The REL a_ qua l_ value. */
 	private static String RELA_QUAL_VALUE = RrfLoaderConstants.RELA_QUALIFIER;
+	
+	/** The AU i_ targe t_ qua l_ value. */
 	private static String AUI_TARGET_QUAL_VALUE = MetaLoaderConstants.TARGET_AUI_QUALIFIER;
+	
+	/** The AU i_ sourc e_ qua l_ value. */
 	private static String AUI_SOURCE_QUAL_VALUE = MetaLoaderConstants.SOURCE_AUI_QUALIFIER;
+	
+	/** The AU i_ qua l_ value. */
 	private static String AUI_QUAL_VALUE = RrfLoaderConstants.AUI_QUALIFIER;
+	
+	/** The ROOT. */
 	private static String ROOT = "@";
+	
+	/** The TAIL. */
 	private static String TAIL = "@@";
 	
+	/** The sab root node cache. */
 	private Map<String,String> sabRootNodeCache = new HashMap<String,String>();
 	
+	/** The internal name. */
 	private String internalName;
+	
+	/** The internal version. */
 	private String internalVersion;
 	
+	/** The max to return. */
 	private int maxToReturn;
 	
+	/** The associations. */
 	private List<String> associations;
 	
+	/** The association reverse names. */
 	private Map<String,String> associationReverseNames = new HashMap<String,String>();
+	
+	/** The rela reverse names. */
 	private Map<String,String> relaReverseNames;
 	
-	private SQLInterface sqlInterface;
+	/** The sql interface. */
+	private transient SQLInterface sqlInterface;
 
+	/**
+	 * Inits the extension.
+	 * 
+	 * @throws LBException the LB exception
+	 */
 	public void initExtension() throws LBException{
 		CodingSchemeVersionOrTag tagOrVersion = null;
 		String codingSchemeName = CODING_SCHEME_NAME;
@@ -115,14 +187,45 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		}
 	}
 	
+	/* (non-Javadoc)
+	 * @see org.LexGrid.lexevs.metabrowser.MetaBrowserService#getBySourceTabDisplay(java.lang.String, java.lang.String, java.util.List, org.LexGrid.lexevs.metabrowser.MetaBrowserService.Direction)
+	 */
 	public Map<String, List<BySourceTabResults>> getBySourceTabDisplay(String cui,
 			String source, List<String> relationships, Direction direction) throws LBException {	
 		return getBySourceTabDisplay(cui,
 				source, relationships, direction, true);
 	}
 	
-	public Map<String, List<BySourceTabResults>> getBySourceTabDisplay(String cui,
-			String source, List<String> relationships, Direction direction, boolean excludeSelfReferencing) throws LBException {	
+	/* (non-Javadoc)
+	 * @see org.LexGrid.lexevs.metabrowser.MetaBrowserService#getBySourceTabDisplay(java.lang.String, java.lang.String, java.util.List, org.LexGrid.lexevs.metabrowser.MetaBrowserService.Direction, boolean)
+	 */
+	public Map<String, List<BySourceTabResults>> getBySourceTabDisplay(
+			String cui,
+			String source, 
+			List<String> relationships, 
+			Direction direction, 
+			boolean excludeSelfReferencing) throws LBException{
+		return this.getBySourceTabDisplay(
+				cui, 
+				source, 
+				relationships, 
+				direction, 
+				excludeSelfReferencing, 
+				0, 
+				-1);
+	}
+	
+	/* (non-Javadoc)
+	 * @see org.LexGrid.lexevs.metabrowser.MetaBrowserService#getBySourceTabDisplay(java.lang.String, java.lang.String, java.util.List, org.LexGrid.lexevs.metabrowser.MetaBrowserService.Direction, boolean, int, int)
+	 */
+	public Map<String, List<BySourceTabResults>> getBySourceTabDisplay(
+			String cui,
+			String source, 
+			List<String> relationships, 
+			Direction direction, 
+			boolean excludeSelfReferencing, 
+			int start,
+			int pageSize) throws LBException {	
 		initExtension();
 		
 		PreparedStatement getRelations = null;
@@ -137,7 +240,13 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		
 		try {
 			getRelations = sqlInterface.modifyAndCheckOutPreparedStatement(
-					buildGetBySourceDisplaySql(source, direction, relationships, excludeSelfReferencing));
+					buildGetBySourceDisplaySql(
+							source, 
+							direction, 
+							relationships, 
+							excludeSelfReferencing, 
+							start, 
+							pageSize));
 			
 			getRelations.setString(1, cui);
 
@@ -161,6 +270,14 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	
 	}
 	
+	/**
+	 * Gets the association reverse name.
+	 * 
+	 * @param cs the cs
+	 * @param associationName the association name
+	 * 
+	 * @return the association reverse name
+	 */
 	private String getAssociationReverseName(CodingScheme cs, String associationName){
 		Relations[] relations = cs.getRelations();
 		for (int i = 0; i < relations.length; i++) {
@@ -174,6 +291,9 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		return null;
 	}
 	
+	/* (non-Javadoc)
+	 * @see org.LexGrid.lexevs.metabrowser.MetaBrowserService#getRelationshipsDisplay(java.lang.String, java.util.List, org.LexGrid.lexevs.metabrowser.MetaBrowserService.Direction)
+	 */
 	public Map<String, List<RelationshipTabResults>> getRelationshipsDisplay(String cui, 
 			List<String> relationships, 
 			Direction direction) throws LBException {
@@ -182,6 +302,9 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 				direction, true);
 	}
 
+	/* (non-Javadoc)
+	 * @see org.LexGrid.lexevs.metabrowser.MetaBrowserService#getRelationshipsDisplay(java.lang.String, java.util.List, org.LexGrid.lexevs.metabrowser.MetaBrowserService.Direction, boolean)
+	 */
 	public Map<String, List<RelationshipTabResults>> getRelationshipsDisplay(String cui, 
 			List<String> relationships, 
 			Direction direction, boolean excludeSelfReferencing) throws LBException {
@@ -222,6 +345,15 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		}	
 	}
 	
+	/**
+	 * Builds the relationship map.
+	 * 
+	 * @param relationships the relationships
+	 * @param direction the direction
+	 * @param result the result
+	 * 
+	 * @return the map< string, list< t>>
+	 */
 	private <T> Map<String, List<T>> buildRelationshipMap(
 			List<String> relationships, Direction direction,
 			Class<T> result) {
@@ -237,6 +369,17 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		return map;
 	}
 
+	/**
+	 * Builds the relationship tab results.
+	 * 
+	 * @param rs the rs
+	 * @param map the map
+	 * @param direction the direction
+	 * 
+	 * @return the map< string, list< relationship tab results>>
+	 * 
+	 * @throws SQLException the SQL exception
+	 */
 	private Map<String, List<RelationshipTabResults>> buildRelationshipTabResults(
 			ResultSet rs, 
 			Map<String, List<RelationshipTabResults>> map,
@@ -275,6 +418,17 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		return map;
 	}
 	
+	/**
+	 * Builds the by source tab results.
+	 * 
+	 * @param rs the rs
+	 * @param map the map
+	 * @param direction the direction
+	 * 
+	 * @return the map< string, list< by source tab results>>
+	 * 
+	 * @throws SQLException the SQL exception
+	 */
 	private Map<String, List<BySourceTabResults>> buildBySourceTabResults(
 			ResultSet rs, 
 			Map<String, List<BySourceTabResults>> map,
@@ -317,14 +471,35 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		return map;
 	}
 	
+	/**
+	 * Reverse rel.
+	 * 
+	 * @param rel the rel
+	 * 
+	 * @return the string
+	 */
 	private String reverseRel(String rel){
 		return associationReverseNames.get(rel);
 	}
 	
+	/**
+	 * Reverse rela.
+	 * 
+	 * @param rela the rela
+	 * 
+	 * @return the string
+	 */
 	private String reverseRela(String rela){
 		return relaReverseNames.get(rela);
 	}
 	
+	/**
+	 * Gets the sql interface.
+	 * 
+	 * @return the sql interface
+	 * 
+	 * @throws RuntimeException the runtime exception
+	 */
 	private SQLInterface getSqlInterface() throws RuntimeException{
 		try {
 			return ResourceManager.instance().getSQLInterface(internalName,
@@ -334,6 +509,15 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		}
 	}
 	
+	/**
+	 * Builds the get relationships count sql.
+	 * 
+	 * @param direction the direction
+	 * @param relations the relations
+	 * @param excludeSelfReferencing the exclude self referencing
+	 * 
+	 * @return the string
+	 */
 	private String buildGetRelationshipsCountSql(Direction direction, List<String> relations, boolean excludeSelfReferencing) {
 		SQLInterface si = this.getSqlInterface();
 		String targetCol = null;
@@ -374,6 +558,16 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		return sb.toString();
 	}
 	
+	/**
+	 * Builds the by source count sql.
+	 * 
+	 * @param source the source
+	 * @param direction the direction
+	 * @param relations the relations
+	 * @param excludeSelfReferencing the exclude self referencing
+	 * 
+	 * @return the string
+	 */
 	private String buildBySourceCountSql(String source, Direction direction, List<String> relations,  boolean excludeSelfReferencing) {
 		SQLInterface si = this.getSqlInterface();
 		String targetCol = null;
@@ -427,6 +621,15 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		return sb.toString();
 	}
 	
+	/**
+	 * Builds the get relationships display sql.
+	 * 
+	 * @param direction the direction
+	 * @param relations the relations
+	 * @param excludeSelfReferencing the exclude self referencing
+	 * 
+	 * @return the string
+	 */
 	private String buildGetRelationshipsDisplaySql(Direction direction, List<String> relations, boolean excludeSelfReferencing) {
 		SQLInterface si = this.getSqlInterface();
 		String sourceCol = null;
@@ -496,10 +699,26 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 				if(excludeSelfReferencing){
 					sb.append(getExcludeSelfReferencingSql());
 				}
+				
+				
 		return sb.toString();
 	}
 	
-	private String buildGetBySourceDisplaySql(String source, Direction direction, List<String> relations,  boolean excludeSelfReferencing) {
+	/**
+	 * Builds the get by source display sql.
+	 * 
+	 * @param source the source
+	 * @param direction the direction
+	 * @param relations the relations
+	 * @param excludeSelfReferencing the exclude self referencing
+	 * @param start the start
+	 * @param pageSize the page size
+	 * 
+	 * @return the string
+	 */
+	private String buildGetBySourceDisplaySql(
+			String source, Direction direction, List<String> relations,  
+			boolean excludeSelfReferencing, int start, int pageSize) {
 		SQLInterface si = this.getSqlInterface();
 		String sourceCol = null;
 		String targetCol = null;
@@ -627,9 +846,21 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 				if(excludeSelfReferencing){
 					sb.append(getExcludeSelfReferencingSql());
 				}
+				
+				if(pageSize > 0){
+					sb.append(" LIMIT " + pageSize);
+					sb.append(" OFFSET " + start);
+				}	
 		return sb.toString();
 	}
 	
+	/**
+	 * Builds the association list.
+	 * 
+	 * @return the list< string>
+	 * 
+	 * @throws Exception the exception
+	 */
 	private List<String> buildAssociationList() throws Exception {
 		List<String> returnList = new ArrayList<String>();
 		CodingScheme cs = SQLImplementedMethods.buildCodingScheme(internalName, internalVersion);
@@ -642,12 +873,18 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		return returnList;
 	}
 	
+	/* (non-Javadoc)
+	 * @see org.LexGrid.lexevs.metabrowser.MetaBrowserService#getCount(java.lang.String, java.util.List, org.LexGrid.lexevs.metabrowser.MetaBrowserService.Direction)
+	 */
 	public int getCount(String cui,
 			List<String> relationships, Direction direction) throws LBException {
 		return getCount(cui,
 				relationships, direction,  true);
 	}
 
+	/* (non-Javadoc)
+	 * @see org.LexGrid.lexevs.metabrowser.MetaBrowserService#getCount(java.lang.String, java.util.List, org.LexGrid.lexevs.metabrowser.MetaBrowserService.Direction, boolean)
+	 */
 	public int getCount(String cui,
 			List<String> relationships, Direction direction,  boolean excludeSelfReferencing) throws LBException {
 		initExtension();
@@ -687,6 +924,11 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		}	
 	}
 	
+	/**
+	 * Gets the exclude self referencing sql.
+	 * 
+	 * @return the exclude self referencing sql
+	 */
 	private String getExcludeSelfReferencingSql(){
 		StringBuffer sb = new StringBuffer();
 		sb.append(
@@ -697,12 +939,18 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		return sb.toString();
 	}
 	
+	/* (non-Javadoc)
+	 * @see org.LexGrid.lexevs.metabrowser.MetaBrowserService#getCount(java.lang.String, java.lang.String, java.util.List, org.LexGrid.lexevs.metabrowser.MetaBrowserService.Direction)
+	 */
 	public int getCount(String cui, String source,
 			List<String> relationships, Direction direction) throws LBException {
 		return getCount(cui, source,
 				relationships, direction, true);
 	}
 	
+	/* (non-Javadoc)
+	 * @see org.LexGrid.lexevs.metabrowser.MetaBrowserService#getCount(java.lang.String, java.lang.String, java.util.List, org.LexGrid.lexevs.metabrowser.MetaBrowserService.Direction, boolean)
+	 */
 	public int getCount(String cui, String source,
 			List<String> relationships, Direction direction, boolean excludeSelfReferencing) throws LBException {
 		initExtension();
@@ -742,11 +990,17 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		}	
 	}
 
+	/* (non-Javadoc)
+	 * @see org.LexGrid.lexevs.metabrowser.MetaBrowserService#getMaxToReturn()
+	 */
 	public int getMaxToReturn() throws LBException {
 		initExtension();
 		return this.maxToReturn;
 	}
 	
+	/* (non-Javadoc)
+	 * @see org.LexGrid.LexBIG.Impl.Extensions.AbstractExtendable#buildExtensionDescription()
+	 */
 	@Override
 	protected ExtensionDescription buildExtensionDescription() {
 		ExtensionDescription ed = new ExtensionDescription();
@@ -759,26 +1013,37 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		return ed;
 	}
 
+	/* (non-Javadoc)
+	 * @see org.LexGrid.lexevs.metabrowser.MetaBrowserService#getMetaNCINeighborhood(java.lang.String)
+	 */
 	@LgClientSideSafe 
-	public MetaTree getMetaNCINeighborhood(String focus, int levelsParents) throws LBException {
-		return getMetaNeighborhood(focus, NCI_SOURCE, levelsParents);	
+	public MetaTree getMetaNCINeighborhood(String focus) throws LBException {
+		return getMetaNeighborhood(focus, NCI_SOURCE);	
 	}
 	
+	/* (non-Javadoc)
+	 * @see org.LexGrid.lexevs.metabrowser.MetaBrowserService#getMetaNCINeighborhood()
+	 */
 	public MetaTree getMetaNCINeighborhood() throws LBException {
 		sabRootNodeCache.put(NCI_SOURCE, NCI_ROOT);
 		return getMetaNeighborhood(NCI_SOURCE);	
 	}
 
-	public MetaTree getMetaNeighborhood(String focus, String source,
-			int levelsParents) throws LBException {
+	/* (non-Javadoc)
+	 * @see org.LexGrid.lexevs.metabrowser.MetaBrowserService#getMetaNeighborhood(java.lang.String, java.lang.String)
+	 */
+	public MetaTree getMetaNeighborhood(String focus, String source) throws LBException {
 		MetaBrowserService svc = this;
-		return new  MetaTreeImpl(svc, focus, source, levelsParents);	
+		return new  MetaTreeImpl(svc, focus, source);	
 	}
 
+	/* (non-Javadoc)
+	 * @see org.LexGrid.lexevs.metabrowser.MetaBrowserService#getMetaNeighborhood(java.lang.String)
+	 */
 	public MetaTree getMetaNeighborhood(String source) throws LBException {
 		MetaBrowserService svc = this;
 		if(sabRootNodeCache.containsKey(source)){
-			return new MetaTreeImpl(svc, sabRootNodeCache.get(source), source, -1);
+			return new MetaTreeImpl(svc, sabRootNodeCache.get(source), source);
 		} else {
 			MetaTree tree = new MetaTreeImpl(svc, source);	
 			sabRootNodeCache.put(source, tree.getCurrentFocus().getCui());
@@ -786,11 +1051,17 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		}
 	}
 
+	/* (non-Javadoc)
+	 * @see org.LexGrid.lexevs.metabrowser.MetaBrowserService#setLexBIGService(org.LexGrid.LexBIG.LexBIGService.LexBIGService)
+	 */
 	@LgClientSideSafe 
 	public void setLexBIGService(LexBIGService lbs) throws LBException {
 		this.lbs = lbs;	
 	}
 	
+	/* (non-Javadoc)
+	 * @see org.LexGrid.lexevs.metabrowser.MetaBrowserService#getLexBIGService()
+	 */
 	@LgClientSideSafe 
 	public LexBIGService getLexBIGService() throws LBException {
 		if(lbs == null){

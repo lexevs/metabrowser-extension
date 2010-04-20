@@ -1,3 +1,21 @@
+/*
+ * Copyright: (c) 2004-2009 Mayo Foundation for Medical Education and 
+ * Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
+ * triple-shield Mayo logo are trademarks and service marks of MFMER.
+ *
+ * Except as contained in the copyright notice above, or as used to identify 
+ * MFMER as the author of this software, the trade names, trademarks, service
+ * marks, or product names of the copyright holder shall not be used in
+ * advertising, promotion or otherwise in connection with this software without
+ * prior written authorization of the copyright holder.
+ * 
+ * Licensed under the Eclipse Public License, Version 1.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at 
+ * 
+ * 		http://www.eclipse.org/legal/epl-v10.html
+ * 
+ */
 package org.LexGrid.lexevs.metabrowser.helper;
 
 import java.io.BufferedReader;
@@ -9,19 +27,38 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * The Class MrDocLoader.
+ * 
+ * @author <a href="mailto:kevin.peterson@mayo.edu">Kevin Peterson</a>
+ */
 public class MrDocLoader {
 	
+	/** The MRDO c_ file. */
 	private static String MRDOC_FILE = "/MRDOC.RRF";
 	
+	/** The RELA. */
 	private static String RELA = "RELA";
+	
+	/** The REL a_ inverse. */
 	private static String RELA_INVERSE = "rela_inverse";
 
+	/**
+	 * The main method.
+	 * 
+	 * @param args the arguments
+	 */
 	public static void main(String[] args){
 		MrDocLoader l = new MrDocLoader();
 		Map<String,String> map = l.getRelasAndReverseRelas();
 		System.out.println(map);
 	}
 	
+	/**
+	 * Gets the relas and reverse relas.
+	 * 
+	 * @return the relas and reverse relas
+	 */
 	public Map<String,String> getRelasAndReverseRelas(){
 		Map<String,String> relasAndInverses = new HashMap<String,String>();
 		List<String> lines = readText(MRDOC_FILE);
@@ -37,6 +74,13 @@ public class MrDocLoader {
 		return relasAndInverses;
 	}
 
+	/**
+	 * Read text.
+	 * 
+	 * @param file the file
+	 * 
+	 * @return the list< string>
+	 */
 	private List<String> readText(String file) {
 		InputStream is = null;
 		BufferedReader br = null;
