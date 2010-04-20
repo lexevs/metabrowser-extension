@@ -157,7 +157,7 @@ public class ChildIterator implements Iterator<MetaTreeNode>, Iterable<MetaTreeN
 				position, 
 				pageSize);
 		
-		List<BySourceTabResults> bySourceChildResults = list.get(MetaBrowserServiceImpl.CHD_REL);
+		List<BySourceTabResults> bySourceChildResults = list.get(MetaBrowserServiceImpl.PAR_REL);
 	
 		this.childList = toMetaTreeNodeList(bySourceChildResults);
 		this.pagedListPosition = 0;

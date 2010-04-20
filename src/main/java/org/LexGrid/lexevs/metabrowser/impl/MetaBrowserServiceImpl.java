@@ -931,11 +931,13 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	 */
 	private String getExcludeSelfReferencingSql(){
 		StringBuffer sb = new StringBuffer();
+		/*
 		sb.append(
 				" AND " +
 				sqlInterface.getSQLTableConstants().targetEntityCodeOrId +
 				" != " +
 				sqlInterface.getSQLTableConstants().sourceEntityCodeOrId);
+				*/
 		return sb.toString();
 	}
 	

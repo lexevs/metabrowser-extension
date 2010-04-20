@@ -116,7 +116,7 @@ public class MetaTreeImpl implements MetaTree {
 	
 	private ChildIterator getChildren(MetaTreeNode focus, MetaTreeNode parent) throws LBException{
 		List<String> rels = new ArrayList<String>();
-		rels.add(CHD_REL);
+		rels.add(PAR_REL);
 
 		return new ChildIterator(
 				focus.getCui(), 
@@ -130,10 +130,10 @@ public class MetaTreeImpl implements MetaTree {
 	
 	private List<MetaTreeNode> getParents(MetaTreeNode focus) throws LBException{
 		List<String> rels = new ArrayList<String>();
-		rels.add(CHD_REL);
+		rels.add(PAR_REL);
 		
 		List<BySourceTabResults> results =
-			getService().getBySourceTabDisplay(focus.getCui(), source, rels, Direction.TARGETOF, true, 0, -1).get(PAR_REL);
+			getService().getBySourceTabDisplay(focus.getCui(), source, rels, Direction.TARGETOF, true, 0, -1).get(CHD_REL);
 
 		if(results == null || results.size() == 0){return null;}
 		
@@ -213,7 +213,7 @@ public class MetaTreeImpl implements MetaTree {
 		MetaTreeNode focusNode = this.getFocusDetails(cui);
 		
 		List<String> rels = new ArrayList<String>();
-		rels.add(CHD_REL);
+		rels.add(PAR_REL);
 	
 		int childrenCount = getService().getCount(cui, source, rels, Direction.SOURCEOF, true);
 		focusNode.setChildrenCount(childrenCount);
@@ -242,7 +242,7 @@ public class MetaTreeImpl implements MetaTree {
 	 */
 	private MetaTreeNode setInitialFocus() throws LBException {	
 		List<String> rels = new ArrayList<String>();
-		rels.add(CHD_REL);
+		rels.add(PAR_REL);
 		
 		ResolvedConceptReference ref = getCodingSchemeRoot(source);
 		MetaTreeNode focusNode = 
