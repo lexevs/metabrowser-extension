@@ -128,7 +128,11 @@ public class MetaTreeImpl implements MetaTree {
 				focus.getChildrenCount());
 	}
 	
-	private List<MetaTreeNode> getParents(MetaTreeNode focus) throws LBException{
+	private List<MetaTreeNode> getParents(MetaTreeNode focus, List<String> previousParentCuis) throws LBException{
+		if(previousParentCuis == null){
+			previousParentCuis = new ArrayList<String>();
+		}
+		
 		List<String> rels = new ArrayList<String>();
 		rels.add(PAR_REL);
 		
@@ -141,6 +145,13 @@ public class MetaTreeImpl implements MetaTree {
 		
 		for(BySourceTabResults bySource : results){
 			String cui = bySource.getCui();
+			
+			if(previousParentCuis.contains(cui)){
+				continue;
+			} else {
+				previousParentCuis.add(cui);
+			}
+			
 			String name = bySource.getTerm();
 			
 			MetaTreeNode parent = this.buildMetaTreeNode(cui, name);
@@ -152,7 +163,7 @@ public class MetaTreeImpl implements MetaTree {
 			parent.getPathToRootChilden().add(focus);
 			parent.setExpandedState(ExpandedState.EXPANDABLE);
 			
-			parent.setParents(getParents(parent));
+			parent.setParents(getParents(parent, previousParentCuis));
 			returnList.add(parent);
 		}
 		
@@ -228,7 +239,7 @@ public class MetaTreeImpl implements MetaTree {
 		focusNode.setChildren(children);
 
 		focusNode.setParents(
-				this.getParents(focusNode));
+				this.getParents(focusNode, null));
 		
 		return focusNode;
 	}
@@ -265,7 +276,7 @@ public class MetaTreeImpl implements MetaTree {
 		focusNode.setChildren(children);
 		
 		focusNode.setParents(
-				this.getParents(focusNode));
+				this.getParents(focusNode, null));
 
 		return focusNode;	
 	}
@@ -294,7 +305,7 @@ public class MetaTreeImpl implements MetaTree {
 		
 		try {
 			currentFocus.setParents(
-					this.getParents(newFocus));
+					this.getParents(newFocus, null));
 		
 		} catch (LBException e) {
 			throw new RuntimeException(e);
