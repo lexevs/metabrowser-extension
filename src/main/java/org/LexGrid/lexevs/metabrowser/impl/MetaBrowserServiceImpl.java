@@ -18,7 +18,6 @@
  */
 package org.LexGrid.lexevs.metabrowser.impl;
 
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -29,13 +28,12 @@ import java.util.Map;
 import org.LexGrid.LexBIG.DataModel.Core.CodingSchemeVersionOrTag;
 import org.LexGrid.LexBIG.DataModel.InterfaceElements.ExtensionDescription;
 import org.LexGrid.LexBIG.Exceptions.LBException;
+import org.LexGrid.LexBIG.Exceptions.LBParameterException;
+import org.LexGrid.LexBIG.Extensions.Generic.LexBIGServiceConvenienceMethods;
 import org.LexGrid.LexBIG.Impl.LexBIGServiceImpl;
 import org.LexGrid.LexBIG.Impl.Extensions.AbstractExtendable;
-import org.LexGrid.LexBIG.Impl.dataAccess.ResourceManager;
-import org.LexGrid.LexBIG.Impl.dataAccess.SQLImplementedMethods;
-import org.LexGrid.LexBIG.Impl.dataAccess.SQLInterface;
-import org.LexGrid.LexBIG.Impl.internalExceptions.MissingResourceException;
 import org.LexGrid.LexBIG.LexBIGService.LexBIGService;
+import org.LexGrid.LexBIG.Utility.Constructors;
 import org.LexGrid.annotations.LgClientSideSafe;
 import org.LexGrid.codingSchemes.CodingScheme;
 import org.LexGrid.commonTypes.Source;
@@ -45,10 +43,16 @@ import org.LexGrid.lexevs.metabrowser.helper.MrDocLoader;
 import org.LexGrid.lexevs.metabrowser.model.BySourceTabResults;
 import org.LexGrid.lexevs.metabrowser.model.RelationshipTabResults;
 import org.LexGrid.naming.SupportedAssociation;
+import org.LexGrid.relations.AssociationPredicate;
 import org.LexGrid.relations.Relations;
 import org.LexGrid.util.sql.lgTables.SQLTableConstants;
+import org.lexevs.locator.LexEvsServiceLocator;
+import org.lexevs.system.service.SystemResourceService;
 import org.lexgrid.loader.meta.constants.MetaLoaderConstants;
 import org.lexgrid.loader.rrf.constants.RrfLoaderConstants;
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.ResultSetExtractor;
 
 /**
  * The Class MetaBrowserServiceImpl.
@@ -59,6 +63,8 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 
 	/** The CODIN g_ schem e_ name. */
 	public static String CODING_SCHEME_NAME = "NCI MetaThesaurus";
+	
+	public static String CODING_SCHEME_URI = "urn:oid:2.16.840.1.113883.3.26.1.2";
 	
 	/** The NC i_ source. */
 	private static String NCI_SOURCE = "NCI";
@@ -136,8 +142,21 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	private Map<String,String> relaReverseNames;
 	
 	/** The sql interface. */
-	private transient SQLInterface sqlInterface;
+	private transient JdbcTemplate jdbcTemplate;
+	
+	private static String ENTITY_ASSOCIATION_TO_ENTITY = "entityAssnsToEntity";
+	private static String ENTITY_ASSOCIATION_TO_E_QUALS = "entityAssnQuals";
+	private static String ENTITY = "entity";
+	private static String ASSOCIATION_PREDICATE = "associationPredicate";
+	private static String ENTITY_PROPERTY_MULTI_ATTRIBUTES = "propertyMultiAttrib";
+	private static String ENTITY_PROPERTY = "property";
 
+	
+	public static void main(String[] args) throws Exception {
+		MetaBrowserService ext = new MetaBrowserServiceImpl();
+		System.out.println(ext.getBySourceTabDisplay("C1333105", "MSH", null, Direction.SOURCEOF));
+	}
+	
 	/**
 	 * Inits the extension.
 	 * 
@@ -147,14 +166,14 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		CodingSchemeVersionOrTag tagOrVersion = null;
 		String codingSchemeName = CODING_SCHEME_NAME;
 		
-		ResourceManager rm = null;
+		SystemResourceService rm = null;
 		try {
-			rm = ResourceManager.instance();
+			rm = LexEvsServiceLocator.getInstance().getSystemResourceService();
 		
 		
 		String version; 
 		if (tagOrVersion == null || tagOrVersion.getVersion() == null || tagOrVersion.getVersion().length() == 0) {
-	            version = rm.getInternalVersionStringFor(codingSchemeName,
+	            version = rm.getInternalVersionStringForTag(codingSchemeName,
 	                    (tagOrVersion == null ? null : tagOrVersion.getTag()));
 	        } else {
 	            version = tagOrVersion.getVersion();
@@ -180,7 +199,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 			throw new RuntimeException(e);
 		}
 		
-		sqlInterface = this.getSqlInterface();
+		//sqlInterface = this.getSqlInterface();
 		
 		} catch (Throwable e1) {
 			throw new LBException(e1.toString());
@@ -228,8 +247,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 			int pageSize) throws LBException {	
 		initExtension();
 		
-		PreparedStatement getRelations = null;
-		ResultSet rs = null;
+		String getRelationsSql = null;
 
 		if(relationships == null){
 			relationships = this.associations;
@@ -239,35 +257,19 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 			buildRelationshipMap(relationships, direction, BySourceTabResults.class);
 		
 		try {
-			getRelations = sqlInterface.modifyAndCheckOutPreparedStatement(
+			getRelationsSql = 
 					buildGetBySourceDisplaySql(
 							source, 
 							direction, 
 							relationships, 
 							excludeSelfReferencing, 
 							start, 
-							pageSize));
-			
-			getRelations.setString(1, cui);
+							pageSize);
 
-			rs = getRelations.executeQuery();
-			return buildBySourceTabResults(rs, map, direction);	
+			return buildBySourceTabResults(getRelationsSql, cui, map, direction);	
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
-		} finally {
-			try {
-				if(getRelations != null){
-					sqlInterface.checkInPreparedStatement(getRelations);
-					getRelations.close();
-				}
-				if(rs != null){
-					rs.close();
-				}
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}	
-		}	
-	
+		} 
 	}
 	
 	/**
@@ -277,15 +279,19 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	 * @param associationName the association name
 	 * 
 	 * @return the association reverse name
+	 * @throws LBException 
 	 */
-	private String getAssociationReverseName(CodingScheme cs, String associationName){
+	private String getAssociationReverseName(CodingScheme cs, String associationName) throws LBException{
 		Relations[] relations = cs.getRelations();
 		for (int i = 0; i < relations.length; i++) {
-			org.LexGrid.relations.Association[] associations = relations[i].getAssociation();
+			AssociationPredicate[] associations = relations[i].getAssociationPredicate();
 			for (int j = 0; j < associations.length; j++) {
-				if (associations[j].getEntityCode() != null
-						&& associations[j].getEntityCode().equalsIgnoreCase(associationName))
-					return associations[j].getReverseName();
+				if (associations[j].getAssociationName() != null
+						&& associations[j].getAssociationName().equalsIgnoreCase(associationName)) {
+					LexBIGServiceConvenienceMethods lbcm = (LexBIGServiceConvenienceMethods) this.getLexBIGService().getGenericExtension("LexBIGServiceConvenienceMethods");
+					return lbcm.getAssociationReverseName(associationName, cs.getCodingSchemeURI(), 
+							Constructors.createCodingSchemeVersionOrTagFromVersion(cs.getRepresentsVersion()));
+				}
 			}
 		}
 		return null;
@@ -310,8 +316,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 			Direction direction, boolean excludeSelfReferencing) throws LBException {
 		initExtension();
 		
-		PreparedStatement getRelations = null;
-		ResultSet rs = null;
+		String getRelationsSql = null;
 
 		if(relationships == null){
 			relationships = this.associations;
@@ -321,28 +326,12 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 			buildRelationshipMap(relationships, direction, RelationshipTabResults.class);
 		
 		try {
-			getRelations = sqlInterface.modifyAndCheckOutPreparedStatement(
-					buildGetRelationshipsDisplaySql(direction, relationships, excludeSelfReferencing));
-			
-			getRelations.setString(1, cui);
+			getRelationsSql = buildGetRelationshipsDisplaySql(direction, relationships, excludeSelfReferencing);
 
-			rs = getRelations.executeQuery();
-			return buildRelationshipTabResults(rs, map, direction);	
+			return buildRelationshipTabResults(getRelationsSql, cui, map, direction);	
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
-		} finally {
-			try {
-				if(getRelations != null){
-					sqlInterface.checkInPreparedStatement(getRelations);
-					getRelations.close();
-				}
-				if(rs != null){
-					rs.close();
-				}
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}	
-		}	
+		} 
 	}
 	
 	/**
@@ -380,42 +369,52 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	 * 
 	 * @throws SQLException the SQL exception
 	 */
+	@SuppressWarnings("unchecked")
 	private Map<String, List<RelationshipTabResults>> buildRelationshipTabResults(
-			ResultSet rs, 
-			Map<String, List<RelationshipTabResults>> map,
-			Direction direction) throws SQLException{
-		while(rs.next()){
-			RelationshipTabResults result = new RelationshipTabResults();
-			
-			String rel = rs.getString(REL_COL);
-			if(direction.equals(Direction.TARGETOF)){
-				rel = reverseRel(rel);
+			String sql, 
+			String cui,
+			final Map<String, List<RelationshipTabResults>> map,
+			final Direction direction) throws SQLException {
+
+		return (Map<String, List<RelationshipTabResults>>) this.getJdbcTemplate().query(sql, new String[] {cui}, new ResultSetExtractor() {
+
+			@Override
+			public Object extractData(ResultSet rs) throws SQLException,
+			DataAccessException {
+				while(rs.next()){
+					RelationshipTabResults result = new RelationshipTabResults();
+
+					String rel = rs.getString(REL_COL);
+					if(direction.equals(Direction.TARGETOF)){
+						rel = reverseRel(rel);
+					}
+
+					String targetConceptCode = null;
+					if(direction.equals(Direction.TARGETOF)){
+						targetConceptCode = rs.getString("sourceEntityCode");
+					} else {
+						targetConceptCode = rs.getString("targetEntityCode");
+					}
+
+					String entityDescription = rs.getString(SQLTableConstants.TBLCOL_ENTITYDESCRIPTION);
+					String sourceQualValue = rs.getString(SOURCE_QUAL_COL);
+
+					String relaQualValue = rs.getString(RELA_QUAL_COL);
+					if(direction.equals(Direction.TARGETOF)){
+						relaQualValue = reverseRela(relaQualValue);
+					}
+
+					result.setCui(targetConceptCode);
+					result.setName(entityDescription);
+					result.setRel(rel);
+					result.setSource(sourceQualValue);
+					result.setRela(relaQualValue);
+
+					map.get(rel).add(result);
+				}
+				return map;
 			}
-			
-			String targetConceptCode = null;
-			if(direction.equals(Direction.TARGETOF)){
-				targetConceptCode = rs.getString(sqlInterface.getSQLTableConstants().sourceEntityCodeOrId);
-			} else {
-				targetConceptCode = rs.getString(sqlInterface.getSQLTableConstants().targetEntityCodeOrId);
-			}
-			
-			String entityDescription = rs.getString(SQLTableConstants.TBLCOL_ENTITYDESCRIPTION);
-			String sourceQualValue = rs.getString(SOURCE_QUAL_COL);
-			
-			String relaQualValue = rs.getString(RELA_QUAL_COL);
-			if(direction.equals(Direction.TARGETOF)){
-				relaQualValue = reverseRela(relaQualValue);
-			}
-			
-			result.setCui(targetConceptCode);
-			result.setName(entityDescription);
-			result.setRel(rel);
-			result.setSource(sourceQualValue);
-			result.setRela(relaQualValue);
-			
-			map.get(rel).add(result);
-		}
-		return map;
+		});
 	}
 	
 	/**
@@ -429,46 +428,56 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	 * 
 	 * @throws SQLException the SQL exception
 	 */
+	@SuppressWarnings("unchecked")
 	private Map<String, List<BySourceTabResults>> buildBySourceTabResults(
-			ResultSet rs, 
-			Map<String, List<BySourceTabResults>> map,
-			Direction direction) throws SQLException{
-		while(rs.next()){
-			BySourceTabResults result = new BySourceTabResults();
-			
-			String rel = rs.getString(REL_COL);
-			if(direction.equals(Direction.TARGETOF)){
-				rel = reverseRel(rel);
+			String sql,
+			String cui, 
+			final Map<String, List<BySourceTabResults>> map,
+			final Direction direction) throws SQLException{
+		
+		return (Map<String, List<BySourceTabResults>>) this.getJdbcTemplate().query(sql, new String[] {cui}, new ResultSetExtractor() {
+
+			@Override
+			public Object extractData(ResultSet rs) throws SQLException,
+					DataAccessException {
+				while(rs.next()){
+					BySourceTabResults result = new BySourceTabResults();
+					
+					String rel = rs.getString(REL_COL);
+					if(direction.equals(Direction.TARGETOF)){
+						rel = reverseRel(rel);
+					}
+					
+					String targetConceptCode = null;
+					if(direction.equals(Direction.TARGETOF)){
+						targetConceptCode = rs.getString("sourceEntityCode");
+					} else {
+						targetConceptCode = rs.getString("targetEntityCode");
+					}
+					
+					String termText = rs.getString(SQLTableConstants.TBLCOL_PROPERTYVALUE);
+					String sourceQualValue = rs.getString(SOURCE_QUAL_COL);
+					String repForm = rs.getString(SQLTableConstants.TBLCOL_REPRESENTATIONALFORM);
+					String sourceCode = rs.getString(SOURCE_CODE_QUAL_COL);
+					
+					String relaQualValue = rs.getString(RELA_QUAL_COL);
+					if(direction.equals(Direction.TARGETOF)){
+						relaQualValue = reverseRela(relaQualValue);
+					}
+					
+					result.setCui(targetConceptCode);
+					result.setTerm(termText);
+					result.setRel(rel);
+					result.setSource(sourceQualValue);
+					result.setRela(relaQualValue);
+					result.setType(repForm);
+					result.setCode(sourceCode);
+					
+					map.get(rel).add(result);
+				}
+				return map;
 			}
-			
-			String targetConceptCode = null;
-			if(direction.equals(Direction.TARGETOF)){
-				targetConceptCode = rs.getString(sqlInterface.getSQLTableConstants().sourceEntityCodeOrId);
-			} else {
-				targetConceptCode = rs.getString(sqlInterface.getSQLTableConstants().targetEntityCodeOrId);
-			}
-			
-			String termText = rs.getString(SQLTableConstants.TBLCOL_PROPERTYVALUE);
-			String sourceQualValue = rs.getString(SOURCE_QUAL_COL);
-			String repForm = rs.getString(SQLTableConstants.TBLCOL_REPRESENTATIONALFORM);
-			String sourceCode = rs.getString(SOURCE_CODE_QUAL_COL);
-			
-			String relaQualValue = rs.getString(RELA_QUAL_COL);
-			if(direction.equals(Direction.TARGETOF)){
-				relaQualValue = reverseRela(relaQualValue);
-			}
-			
-			result.setCui(targetConceptCode);
-			result.setTerm(termText);
-			result.setRel(rel);
-			result.setSource(sourceQualValue);
-			result.setRela(relaQualValue);
-			result.setType(repForm);
-			result.setCode(sourceCode);
-			
-			map.get(rel).add(result);
-		}
-		return map;
+		});
 	}
 	
 	/**
@@ -494,22 +503,6 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	}
 	
 	/**
-	 * Gets the sql interface.
-	 * 
-	 * @return the sql interface
-	 * 
-	 * @throws RuntimeException the runtime exception
-	 */
-	private SQLInterface getSqlInterface() throws RuntimeException{
-		try {
-			return ResourceManager.instance().getSQLInterface(internalName,
-			        internalVersion);
-		} catch (MissingResourceException e) {
-			throw new RuntimeException(e);
-		}
-	}
-	
-	/**
 	 * Builds the get relationships count sql.
 	 * 
 	 * @param direction the direction
@@ -519,20 +512,20 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	 * @return the string
 	 */
 	private String buildGetRelationshipsCountSql(Direction direction, List<String> relations, boolean excludeSelfReferencing) {
-		SQLInterface si = this.getSqlInterface();
 		String targetCol = null;
 		if(direction.equals(Direction.SOURCEOF)){
-			targetCol = si.getSQLTableConstants().sourceEntityCodeOrId;
+			targetCol = "sourceEntityCode";
 		} else {
-			targetCol = si.getSQLTableConstants().targetEntityCodeOrId;
+			targetCol = "targetEntityCode";
 		}
 		
 		StringBuffer sb = new StringBuffer();
 		String sql = 
 	    		 "SELECT count(*) " + 
-	    		 " FROM " + si.getTableName(SQLTableConstants.ENTITY_ASSOCIATION_TO_ENTITY) +
-	             " {AS} eate " +
-	
+	    		 " FROM " + this.getTableName(ENTITY_ASSOCIATION_TO_ENTITY) +
+	             " AS eate " +
+	             " INNER JOIN " + this.getTableName(ASSOCIATION_PREDICATE) + " AS ap " +
+	             " ON (ap.associationPredicateGuid = eate.associationPredicateGuid) " +
 	             " WHERE " +
 	             targetCol  + " = ? " +
 	             " AND " +
@@ -544,7 +537,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 				sb.append(sql);
 		
 				for(int i=0;i<relations.size();i++){
-					sb.append("eate." + si.getSQLTableConstants().entityCodeOrAssociationId + " = '" + relations.get(i) + "'");
+					sb.append("ap.associationName = '" + relations.get(i) + "'");
 					if(i == relations.size() -1 ){
 						sb.append(" )");
 					} else {
@@ -569,24 +562,27 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	 * @return the string
 	 */
 	private String buildBySourceCountSql(String source, Direction direction, List<String> relations,  boolean excludeSelfReferencing) {
-		SQLInterface si = this.getSqlInterface();
 		String targetCol = null;
 		if(direction.equals(Direction.SOURCEOF)){
-			targetCol = si.getSQLTableConstants().sourceEntityCodeOrId;
+			targetCol = "sourceEntityCode";
 		} else {
-			targetCol = si.getSQLTableConstants().targetEntityCodeOrId;
+			targetCol = "targetEntityCode";
 		}
 		
 		StringBuffer sb = new StringBuffer();
 		String sql = 
 	    		 "SELECT count(*) " + 
-	    		 " FROM " + si.getTableName(SQLTableConstants.ENTITY_ASSOCIATION_TO_ENTITY) +
-	             " {AS} eate " +
+	    		 " FROM " + this.getTableName(ENTITY_ASSOCIATION_TO_ENTITY) +
+	             " AS eate " +
 	             
-	             " INNER JOIN " + si.getTableName(SQLTableConstants.ENTITY_ASSOCIATION_TO_E_QUALS) +
-                 " {AS} sourceQual ON (" +
-                 " eate." + SQLTableConstants.TBLCOL_MULTIATTRIBUTESKEY +
-                 " = sourceQual." + SQLTableConstants.TBLCOL_MULTIATTRIBUTESKEY +
+	             " INNER JOIN " + this.getTableName(ASSOCIATION_PREDICATE)  +
+                 " AS associationPredicate ON " +
+                 " eate.associationPredicateGuid = associationPredicate.associationPredicateGuid " +
+                 
+	             " INNER JOIN " + this.getTableName(ENTITY_ASSOCIATION_TO_E_QUALS) +
+                 " AS sourceQual ON (" +
+                 " eate.entityAssnsGuid " +
+                 " = sourceQual.referenceGuid" +
                  " AND " +
                  " sourceQual." + SQLTableConstants.TBLCOL_QUALIFIERNAME +
                  " = '"+ SOURCE_QUAL_VALUE + "' )" +
@@ -602,7 +598,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 				sb.append(sql);
 		
 				for(int i=0;i<relations.size();i++){
-					sb.append("eate." + si.getSQLTableConstants().entityCodeOrAssociationId + " = '" + relations.get(i) + "'");
+					sb.append("associationPredicate.associationName = '" + relations.get(i) + "'");
 					if(i == relations.size() -1 ){
 						sb.append(" )");
 					} else {
@@ -631,48 +627,48 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	 * @return the string
 	 */
 	private String buildGetRelationshipsDisplaySql(Direction direction, List<String> relations, boolean excludeSelfReferencing) {
-		SQLInterface si = this.getSqlInterface();
 		String sourceCol = null;
 		String targetCol = null;
 		if(direction.equals(Direction.SOURCEOF)){
-			sourceCol = si.getSQLTableConstants().targetEntityCodeOrId;
-			targetCol = si.getSQLTableConstants().sourceEntityCodeOrId;
+			sourceCol = "targetEntityCode";
+			targetCol = "sourceEntityCode";
 		} else {
-			targetCol = si.getSQLTableConstants().targetEntityCodeOrId;
-			sourceCol = si.getSQLTableConstants().sourceEntityCodeOrId;
+			targetCol = "targetEntityCode";
+			sourceCol = "sourceEntityCode";
 		}
 		
 		StringBuffer sb = new StringBuffer();
 		String sql = 
 	    		 "SELECT " + 
-	    		 "eate." + si.getSQLTableConstants().entityCodeOrAssociationId  + " {AS} " + REL_COL + ", " +
+	    		 "associationPredicate.associationName AS " + REL_COL + ", " +
 	    		 sourceCol + ", " +
 	    		 " entity."+ SQLTableConstants.TBLCOL_ENTITYDESCRIPTION + ", " +
-	    		 " sourceQual."+ SQLTableConstants.TBLCOL_QUALIFIERVALUE + " {AS} " + SOURCE_QUAL_COL + ", " +
-	    		 " relaQual."+ SQLTableConstants.TBLCOL_QUALIFIERVALUE + " {AS} " + RELA_QUAL_COL +
-	    		 " FROM " + si.getTableName(SQLTableConstants.ENTITY_ASSOCIATION_TO_ENTITY) +
-	             " {AS} eate " +
+	    		 " sourceQual."+ SQLTableConstants.TBLCOL_QUALIFIERVALUE + " AS " + SOURCE_QUAL_COL + ", " +
+	    		 " relaQual."+ SQLTableConstants.TBLCOL_QUALIFIERVALUE + " AS " + RELA_QUAL_COL +
+	    		 " FROM " + this.getTableName(ENTITY_ASSOCIATION_TO_ENTITY) +
+	             " eate " +
 	             
-	             " INNER JOIN " + si.getTableName(SQLTableConstants.ENTITY) +
-                 " {AS} entity ON " +
-                 " eate." + si.getSQLTableConstants().codingSchemeNameOrId +
-                 " = entity." + si.getSQLTableConstants().codingSchemeNameOrId +
-                 " AND " +
+	             " INNER JOIN " + this.getTableName(ENTITY) +
+                 " AS entity ON " +
                  sourceCol +
-                 " = entity." + si.getSQLTableConstants().entityCodeOrId +
+                 " = entity.entityCode" +
                  
-                 " INNER JOIN " + si.getTableName(SQLTableConstants.ENTITY_ASSOCIATION_TO_E_QUALS) +
-                 " {AS} sourceQual ON (" +
-                 " eate." + SQLTableConstants.TBLCOL_MULTIATTRIBUTESKEY +
-                 " = sourceQual." + SQLTableConstants.TBLCOL_MULTIATTRIBUTESKEY +
+                 " INNER JOIN " + this.getTableName(ASSOCIATION_PREDICATE)  +
+                 " AS associationPredicate ON " +
+                 " eate.associationPredicateGuid = associationPredicate.associationPredicateGuid " +
+                 
+                 " INNER JOIN " + this.getTableName(ENTITY_ASSOCIATION_TO_E_QUALS) +
+                 " AS sourceQual ON (" +
+                 " eate.entityAssnsGuid" +
+                 " = sourceQual.referenceGuid" +
                  " AND " +
                  " sourceQual." + SQLTableConstants.TBLCOL_QUALIFIERNAME +
                  " = '"+ SOURCE_QUAL_VALUE + "' )" +
                  
-                 " LEFT JOIN " + si.getTableName(SQLTableConstants.ENTITY_ASSOCIATION_TO_E_QUALS) +
-                 " {AS} relaQual ON (" +
-                 " eate." + SQLTableConstants.TBLCOL_MULTIATTRIBUTESKEY +
-                 " = relaQual." + SQLTableConstants.TBLCOL_MULTIATTRIBUTESKEY  +
+                 " LEFT JOIN " + this.getTableName(ENTITY_ASSOCIATION_TO_E_QUALS) +
+                 " AS relaQual ON (" +
+                 " eate.entityAssnsGuid " +
+                 " = relaQual.referenceGuid " +
                  " AND " +
                  " relaQual." + SQLTableConstants.TBLCOL_QUALIFIERNAME +
                  " = '" + RELA_QUAL_VALUE + "' )" +
@@ -688,7 +684,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 				sb.append(sql);
 		
 				for(int i=0;i<relations.size();i++){
-					sb.append("eate." + si.getSQLTableConstants().entityCodeOrAssociationId + " = '" + relations.get(i) + "'");
+					sb.append("associationPredicate.associationName = '" + relations.get(i) + "'");
 					if(i == relations.size() -1 ){
 						sb.append(" )");
 					} else {
@@ -719,104 +715,100 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	private String buildGetBySourceDisplaySql(
 			String source, Direction direction, List<String> relations,  
 			boolean excludeSelfReferencing, int start, int pageSize) {
-		SQLInterface si = this.getSqlInterface();
 		String sourceCol = null;
 		String targetCol = null;
 		String auiCol = null;
 		if(direction.equals(Direction.SOURCEOF)){
-			sourceCol = si.getSQLTableConstants().targetEntityCodeOrId;
-			targetCol = si.getSQLTableConstants().sourceEntityCodeOrId;
+			sourceCol = "targetEntityCode";
+			targetCol = "sourceEntityCode";
 			auiCol = "auiTargetQual";
 		} else {
-			targetCol = si.getSQLTableConstants().targetEntityCodeOrId;
-			sourceCol = si.getSQLTableConstants().sourceEntityCodeOrId;
+			targetCol = "targetEntityCode";
+			sourceCol = "sourceEntityCode";
 			auiCol = "auiSourceQual";
 		}
 		
 		StringBuffer sb = new StringBuffer();
 		String sql = 
 	    		 "SELECT " + 
-	    		 "eate." + si.getSQLTableConstants().entityCodeOrAssociationId  + " {AS} " + REL_COL + ", " +
+	    		 " ap.associationName AS " + REL_COL + ", " +
 	    		 sourceCol + ", " +
 	    		 " entityProperty." + SQLTableConstants.TBLCOL_PROPERTYVALUE + ", " +
 	    		 " entityProperty." + SQLTableConstants.TBLCOL_REPRESENTATIONALFORM + ", " +
-	    		 " propSourceQual." + SQLTableConstants.TBLCOL_ATTRIBUTEVALUE + " {AS} " + SOURCE_QUAL_COL + ", " +
-	    		 " sourceCodeQual." + SQLTableConstants.TBLCOL_VAL1 + " {AS} " + SOURCE_CODE_QUAL_COL + ", " +
-	    		 " relaQual."+ SQLTableConstants.TBLCOL_QUALIFIERVALUE + " {AS} " + RELA_QUAL_COL +
-	    		 " FROM " + si.getTableName(SQLTableConstants.ENTITY_ASSOCIATION_TO_ENTITY) +
-	             " {AS} eate " +
+	    		 " propSourceQual." + SQLTableConstants.TBLCOL_ATTRIBUTEVALUE + " AS " + SOURCE_QUAL_COL + ", " +
+	    		 " sourceCodeQual." + "attributeValue AS " + SOURCE_CODE_QUAL_COL + ", " +
+	    		 " relaQual."+ SQLTableConstants.TBLCOL_QUALIFIERVALUE + " AS " + RELA_QUAL_COL +
+	    		 " FROM " + this.getTableName(ENTITY_ASSOCIATION_TO_ENTITY) +
+	             " AS eate " +
+	             
+	             " INNER JOIN " + this.getTableName(ASSOCIATION_PREDICATE) +
+	             " AS ap ON (eate.associationPredicateGuid = ap.associationPredicateGuid)" +
 	     
-                 " INNER JOIN " + si.getTableName(SQLTableConstants.ENTITY_ASSOCIATION_TO_E_QUALS) +
-                 " {AS} assocSourceQual ON (" +
-                 " eate." + SQLTableConstants.TBLCOL_MULTIATTRIBUTESKEY +
-                 " = assocSourceQual." + SQLTableConstants.TBLCOL_MULTIATTRIBUTESKEY +
+                 " INNER JOIN " + this.getTableName(ENTITY_ASSOCIATION_TO_E_QUALS) +
+                 " AS assocSourceQual ON (" +
+                 " eate.entityAssnsGuid" +
+                 " = assocSourceQual.referenceGuid" +
                  " AND " +
                  " assocSourceQual." + SQLTableConstants.TBLCOL_QUALIFIERNAME +
                  " = '"+ SOURCE_QUAL_VALUE + "' )" +
                  
-                 " LEFT JOIN " + si.getTableName(SQLTableConstants.ENTITY_ASSOCIATION_TO_E_QUALS) +
-                 " {AS} relaQual ON (" +
-                 " eate." + SQLTableConstants.TBLCOL_MULTIATTRIBUTESKEY +
-                 " = relaQual." + SQLTableConstants.TBLCOL_MULTIATTRIBUTESKEY  +
+                 " LEFT JOIN " + this.getTableName(ENTITY_ASSOCIATION_TO_E_QUALS) +
+                 " AS relaQual ON (" +
+                 " eate.entityAssnsGuid" +
+                 " = relaQual.referenceGuid"  +
                  " AND " +
                  " relaQual." + SQLTableConstants.TBLCOL_QUALIFIERNAME +
                  " = '" + RELA_QUAL_VALUE + "' )" +
                  
-                 " INNER JOIN " + si.getTableName(SQLTableConstants.ENTITY_ASSOCIATION_TO_E_QUALS) +
-                 " {AS} auiSourceQual ON (" +
-                 " eate." + SQLTableConstants.TBLCOL_MULTIATTRIBUTESKEY +
-                 " = auiSourceQual." + SQLTableConstants.TBLCOL_MULTIATTRIBUTESKEY  +
+                 " INNER JOIN " + this.getTableName(ENTITY_ASSOCIATION_TO_E_QUALS) +
+                 " AS auiSourceQual ON (" +
+                 " eate.entityAssnsGuid" +
+                 " = auiSourceQual.referenceGuid" +
                  " AND " +
                  " auiSourceQual." + SQLTableConstants.TBLCOL_QUALIFIERNAME +
                  " = '" + AUI_SOURCE_QUAL_VALUE + "' )" +
                  
-                 " INNER JOIN " + si.getTableName(SQLTableConstants.ENTITY_ASSOCIATION_TO_E_QUALS) +
-                 " {AS} auiTargetQual ON (" +
-                 " eate." + SQLTableConstants.TBLCOL_MULTIATTRIBUTESKEY +
-                 " = auiTargetQual." + SQLTableConstants.TBLCOL_MULTIATTRIBUTESKEY  + 
+                 " INNER JOIN " + this.getTableName(ENTITY_ASSOCIATION_TO_E_QUALS) +
+                 " AS auiTargetQual ON (" +
+                 " eate.entityAssnsGuid" +
+                 " = auiTargetQual.referenceGuid" + 
                  " AND " +
                  " auiTargetQual." + SQLTableConstants.TBLCOL_QUALIFIERNAME +
                  " = '" + AUI_TARGET_QUAL_VALUE + "' )" +
  
-                 " INNER JOIN " + si.getTableName(SQLTableConstants.ENTITY_PROPERTY_MULTI_ATTRIBUTES) +
-                 " {AS} entityPropertyMultiAttrib ON ( " +
-                 " entityPropertyMultiAttrib." + SQLTableConstants.TBLCOL_PROPERTYID + 
+                 " INNER JOIN " + this.getTableName(ENTITY_PROPERTY_MULTI_ATTRIBUTES) +
+                 " AS entityPropertyMultiAttrib ON ( " +
+                 " entityPropertyMultiAttrib.attributeId" + 
                  " = " + auiCol + ".qualifierValue )" +
                  
-                 " INNER JOIN " + si.getTableName(SQLTableConstants.ENTITY_PROPERTY_MULTI_ATTRIBUTES) +
-                 " {AS} sourceCodeQual ON ( " +
-                 " sourceCodeQual." + SQLTableConstants.TBLCOL_PROPERTYID + 
+                 " INNER JOIN " + this.getTableName(ENTITY_PROPERTY_MULTI_ATTRIBUTES) +
+                 " AS sourceCodeQual ON ( " +
+                 " sourceCodeQual.attributeId" + 
                  " = " + auiCol + ".qualifierValue " +
                  " AND " + 
                  " sourceCodeQual." + SQLTableConstants.TBLCOL_ATTRIBUTEVALUE +
                  " = '" + SOURCE_CODE_QUAL_VALUE + "' )" +
               
-                 " INNER JOIN " + si.getTableName(SQLTableConstants.ENTITY_PROPERTY_MULTI_ATTRIBUTES) +
-                 " {AS} propSourceQual ON ( " +
-                 " propSourceQual." + SQLTableConstants.TBLCOL_PROPERTYID + 
+                 " INNER JOIN " + this.getTableName(ENTITY_PROPERTY_MULTI_ATTRIBUTES) +
+                 " AS propSourceQual ON ( " +
+                 " propSourceQual.attributeId" + 
                  " = " + auiCol + ".qualifierValue " +
                  " AND " + 
-                 " propSourceQual." + SQLTableConstants.TBLCOL_TYPENAME +
+                 " propSourceQual.attributeType"  +
                  " = '" + SQLTableConstants.TBLCOLVAL_SOURCE + "' )" +
                  
-                 " INNER JOIN " + si.getTableName(SQLTableConstants.ENTITY_PROPERTY) +
-                 " {AS} entityProperty ON (" +
-                 " entityProperty." + SQLTableConstants.TBLCOL_ENTITYCODENAMESPACE + 
-                 " = entityPropertyMultiAttrib." + SQLTableConstants.TBLCOL_ENTITYCODENAMESPACE +
-                 " AND " + 
-                 " entityProperty." + si.getSQLTableConstants().entityCodeOrId + 
-                 " = entityPropertyMultiAttrib." + si.getSQLTableConstants().entityCodeOrId +
-                 " AND " + 
-                 " entityProperty." + SQLTableConstants.TBLCOL_CODINGSCHEMENAME + 
-                 " = entityPropertyMultiAttrib." + SQLTableConstants.TBLCOL_CODINGSCHEMENAME +
+                 " INNER JOIN " + this.getTableName(ENTITY_PROPERTY) +
+                 " AS entityProperty ON (" +
+                 " entityProperty.propertyGuid" + 
+                 " = entityPropertyMultiAttrib.propertyGuid" +
                  " AND " + 
                  " entityProperty." + SQLTableConstants.TBLCOL_PROPERTYID +
-                 " = entityPropertyMultiAttrib." + SQLTableConstants.TBLCOL_PROPERTYID + " )" +
+                 " = entityPropertyMultiAttrib.attributeId )" +
                   
 	             " WHERE " +
 	             targetCol  + " = ? " +   
 	             " AND " +
-                 " entityPropertyMultiAttrib." + SQLTableConstants.TBLCOL_PROPERTYID + 
+                 " entityPropertyMultiAttrib.attributeId" + 
                  " = " + auiCol + ".qualifierValue " +
                  " AND " +
                  " entityPropertyMultiAttrib." + SQLTableConstants.TBLCOL_ATTRIBUTEVALUE +
@@ -830,7 +822,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 				sb.append(sql);
 		
 				for(int i=0;i<relations.size();i++){
-					sb.append("eate." + si.getSQLTableConstants().entityCodeOrAssociationId + " = '" + relations.get(i) + "'");
+					sb.append("ap.associationName = '" + relations.get(i) + "'");
 					if(i == relations.size() -1 ){
 						sb.append(" )");
 					} else {
@@ -851,9 +843,25 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 					sb.append(" LIMIT " + pageSize);
 					sb.append(" OFFSET " + start);
 				}	
+				
+				System.out.println(sb);
 		return sb.toString();
 	}
 	
+	private String getTableName(String tableName) {
+		try {
+			String version = 
+				LexEvsServiceLocator.getInstance().getSystemResourceService().getInternalVersionStringForTag(CODING_SCHEME_NAME, null);
+			String prefix = LexEvsServiceLocator.getInstance().
+				getLexEvsDatabaseOperations().
+					getPrefixResolver().
+					resolvePrefixForCodingScheme(CODING_SCHEME_URI, version);
+			return prefix + tableName;
+		} catch (LBParameterException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	/**
 	 * Builds the association list.
 	 * 
@@ -863,7 +871,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	 */
 	private List<String> buildAssociationList() throws Exception {
 		List<String> returnList = new ArrayList<String>();
-		CodingScheme cs = SQLImplementedMethods.buildCodingScheme(internalName, internalVersion);
+		CodingScheme cs = this.getLexBIGService().resolveCodingScheme(internalName, Constructors.createCodingSchemeVersionOrTagFromVersion(internalVersion));
 		for(SupportedAssociation assoc : cs.getMappings().getSupportedAssociation()){
 			String assocName = assoc.getLocalId();
 			returnList.add(assocName);
@@ -888,40 +896,18 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	public int getCount(String cui,
 			List<String> relationships, Direction direction,  boolean excludeSelfReferencing) throws LBException {
 		initExtension();
-		
-		PreparedStatement getRelations = null;
-		ResultSet rs = null;
+
+		String getRelationsSql = null;
 
 		if(relationships == null){
 			relationships = this.associations;
 		}
 
-		try {
-			getRelations = sqlInterface.modifyAndCheckOutPreparedStatement(
-					buildGetRelationshipsCountSql(direction, relationships, excludeSelfReferencing));
-			
-			getRelations.setString(1, cui);
-			
-			rs = getRelations.executeQuery();
-			if(!rs.next()){
-				return 0;
-			}
-			return rs.getInt(1);	
-		} catch (SQLException e) {
-			throw new RuntimeException(e);
-		} finally {
-			try {
-				if(getRelations != null){
-					sqlInterface.checkInPreparedStatement(getRelations);
-					getRelations.close();
-				}
-				if(rs != null){
-					rs.close();
-				}
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}	
-		}	
+		getRelationsSql =
+			buildGetRelationshipsCountSql(direction, relationships, excludeSelfReferencing);
+
+
+		return this.getJdbcTemplate().queryForInt(getRelationsSql, new String[] {cui});
 	}
 	
 	/**
@@ -931,13 +917,13 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	 */
 	private String getExcludeSelfReferencingSql(){
 		StringBuffer sb = new StringBuffer();
-		/*
+
 		sb.append(
 				" AND " +
-				sqlInterface.getSQLTableConstants().targetEntityCodeOrId +
+				" targetEntityCode " +
 				" != " +
-				sqlInterface.getSQLTableConstants().sourceEntityCodeOrId);
-				*/
+				" sourceEntityCode ");
+		
 		return sb.toString();
 	}
 	
@@ -956,40 +942,17 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	public int getCount(String cui, String source,
 			List<String> relationships, Direction direction, boolean excludeSelfReferencing) throws LBException {
 		initExtension();
-		
-		PreparedStatement getRelations = null;
-		ResultSet rs = null;
+
+		String getRelationsSql = null;
 
 		if(relationships == null){
 			relationships = this.associations;
 		}
 
-		try {
-			getRelations = sqlInterface.modifyAndCheckOutPreparedStatement(
-					buildBySourceCountSql(source, direction, relationships, excludeSelfReferencing));
-			
-			getRelations.setString(1, cui);
-			
-			rs = getRelations.executeQuery();
-			if(!rs.next()){
-				return 0;
-			}
-			return rs.getInt(1);	
-		} catch (SQLException e) {
-			throw new RuntimeException(e);
-		} finally {
-			try {
-				if(getRelations != null){
-					sqlInterface.checkInPreparedStatement(getRelations);
-					getRelations.close();
-				}
-				if(rs != null){
-					rs.close();
-				}
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}	
-		}	
+		getRelationsSql =
+			buildBySourceCountSql(source, direction, relationships, excludeSelfReferencing);
+
+		return this.getJdbcTemplate().queryForInt(getRelationsSql, new String[] {cui});
 	}
 
 	/* (non-Javadoc)
@@ -1070,5 +1033,12 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 			lbs = LexBIGServiceImpl.defaultInstance();
 		} 
 		return lbs;
+	}
+	
+	public JdbcTemplate getJdbcTemplate() {
+		if(this.jdbcTemplate == null) {
+			this.jdbcTemplate = new JdbcTemplate(LexEvsServiceLocator.getInstance().getLexEvsDatabaseOperations().getDataSource());
+		}
+		return this.jdbcTemplate;
 	}
 }
