@@ -25,26 +25,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.LexGrid.LexBIG.DataModel.Core.CodingSchemeVersionOrTag;
 import org.LexGrid.LexBIG.DataModel.InterfaceElements.ExtensionDescription;
 import org.LexGrid.LexBIG.Exceptions.LBException;
 import org.LexGrid.LexBIG.Exceptions.LBParameterException;
-import org.LexGrid.LexBIG.Extensions.Generic.LexBIGServiceConvenienceMethods;
 import org.LexGrid.LexBIG.Impl.LexBIGServiceImpl;
 import org.LexGrid.LexBIG.Impl.Extensions.AbstractExtendable;
 import org.LexGrid.LexBIG.LexBIGService.LexBIGService;
-import org.LexGrid.LexBIG.Utility.Constructors;
 import org.LexGrid.annotations.LgClientSideSafe;
-import org.LexGrid.codingSchemes.CodingScheme;
 import org.LexGrid.commonTypes.Source;
 import org.LexGrid.lexevs.metabrowser.MetaBrowserService;
 import org.LexGrid.lexevs.metabrowser.MetaTree;
 import org.LexGrid.lexevs.metabrowser.helper.MrDocLoader;
 import org.LexGrid.lexevs.metabrowser.model.BySourceTabResults;
 import org.LexGrid.lexevs.metabrowser.model.RelationshipTabResults;
-import org.LexGrid.naming.SupportedAssociation;
-import org.LexGrid.relations.AssociationPredicate;
-import org.LexGrid.relations.Relations;
 import org.LexGrid.util.sql.lgTables.SQLTableConstants;
 import org.apache.commons.collections.CollectionUtils;
 import org.lexevs.locator.LexEvsServiceLocator;
@@ -124,12 +117,6 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	/** The sab root node cache. */
 	private Map<String,String> sabRootNodeCache = new HashMap<String,String>();
 	
-	/** The internal name. */
-	private String internalName;
-	
-	/** The internal version. */
-	private String internalVersion;
-	
 	/** The max to return. */
 	private int maxToReturn;
 	
@@ -164,27 +151,11 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	 * @throws LBException the LB exception
 	 */
 	public void initExtension() throws LBException{
-		CodingSchemeVersionOrTag tagOrVersion = null;
-		String codingSchemeName = CODING_SCHEME_NAME;
 		
 		SystemResourceService rm = null;
 		try {
 			rm = LexEvsServiceLocator.getInstance().getSystemResourceService();
-		
-		
-		String version; 
-		if (tagOrVersion == null || tagOrVersion.getVersion() == null || tagOrVersion.getVersion().length() == 0) {
-	            version = rm.getInternalVersionStringForTag(codingSchemeName,
-	                    (tagOrVersion == null ? null : tagOrVersion.getTag()));
-	        } else {
-	            version = tagOrVersion.getVersion();
-	        }
-		 
-		 this.internalName = rm
-         .getInternalCodingSchemeNameForUserCodingSchemeName(codingSchemeName, version);
-		 
-		 this.internalVersion = version;
-		 
+	
 		 if(relaReverseNames == null){
 			 MrDocLoader mrdocLoader = new MrDocLoader();
 			 relaReverseNames = mrdocLoader.getRelasAndReverseRelas();
@@ -200,8 +171,6 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
-		
-		//sqlInterface = this.getSqlInterface();
 		
 		} catch (Throwable e1) {
 			throw new LBException(e1.toString());
