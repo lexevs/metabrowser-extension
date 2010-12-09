@@ -46,6 +46,7 @@ import org.LexGrid.naming.SupportedAssociation;
 import org.LexGrid.relations.AssociationPredicate;
 import org.LexGrid.relations.Relations;
 import org.LexGrid.util.sql.lgTables.SQLTableConstants;
+import org.apache.commons.collections.CollectionUtils;
 import org.lexevs.locator.LexEvsServiceLocator;
 import org.lexevs.system.service.SystemResourceService;
 import org.lexgrid.loader.meta.constants.MetaLoaderConstants;
@@ -134,12 +135,12 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	
 	/** The associations. */
 	private List<String> associations;
-	
-	/** The association reverse names. */
-	private Map<String,String> associationReverseNames = new HashMap<String,String>();
-	
+
 	/** The rela reverse names. */
 	private Map<String,String> relaReverseNames;
+	
+	/** The rela reverse names. */
+	private Map<String,String> relReverseNames;
 	
 	/** The sql interface. */
 	private transient JdbcTemplate jdbcTemplate;
@@ -187,6 +188,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		 if(relaReverseNames == null){
 			 MrDocLoader mrdocLoader = new MrDocLoader();
 			 relaReverseNames = mrdocLoader.getRelasAndReverseRelas();
+			 relReverseNames = mrdocLoader.getRelsAndReverseRels();
 		 }
 		 
 		 maxToReturn = rm.getSystemVariables().getMaxResultSize();
@@ -249,7 +251,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		
 		String getRelationsSql = null;
 
-		if(relationships == null){
+		if(CollectionUtils.isEmpty(relationships)){
 			relationships = this.associations;
 		}
 		
@@ -281,21 +283,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	 * @return the association reverse name
 	 * @throws LBException 
 	 */
-	private String getAssociationReverseName(CodingScheme cs, String associationName) throws LBException{
-		Relations[] relations = cs.getRelations();
-		for (int i = 0; i < relations.length; i++) {
-			AssociationPredicate[] associations = relations[i].getAssociationPredicate();
-			for (int j = 0; j < associations.length; j++) {
-				if (associations[j].getAssociationName() != null
-						&& associations[j].getAssociationName().equalsIgnoreCase(associationName)) {
-					LexBIGServiceConvenienceMethods lbcm = (LexBIGServiceConvenienceMethods) this.getLexBIGService().getGenericExtension("LexBIGServiceConvenienceMethods");
-					return lbcm.getAssociationReverseName(associationName, cs.getCodingSchemeURI(), 
-							Constructors.createCodingSchemeVersionOrTagFromVersion(cs.getRepresentsVersion()));
-				}
-			}
-		}
-		return null;
-	}
+	
 	
 	/* (non-Javadoc)
 	 * @see org.LexGrid.lexevs.metabrowser.MetaBrowserService#getRelationshipsDisplay(java.lang.String, java.util.List, org.LexGrid.lexevs.metabrowser.MetaBrowserService.Direction)
@@ -488,7 +476,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	 * @return the string
 	 */
 	private String reverseRel(String rel){
-		return associationReverseNames.get(rel);
+		return this.relReverseNames.get(rel);
 	}
 	
 	/**
@@ -592,11 +580,13 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	             " AND " +
 	             targetCol + " != '" + ROOT + "' " +
 	             " AND " +
-	             targetCol + " != '" + TAIL + "' " +
-	             " AND ( ";
+	             targetCol + " != '" + TAIL + "' ";
 		
 				sb.append(sql);
 		
+				if(relations.size() > 0) {
+					sb.append(" AND ( ");
+				}
 				for(int i=0;i<relations.size();i++){
 					sb.append("associationPredicate.associationName = '" + relations.get(i) + "'");
 					if(i == relations.size() -1 ){
@@ -678,11 +668,13 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	             " AND " +
 	             targetCol + " != '" + ROOT + "' " +
 	             " AND " +
-	             targetCol + " != '" + TAIL + "' " +
-	             " AND ( ";
+	             targetCol + " != '" + TAIL + "' ";
 		
 				sb.append(sql);
 		
+				if(relations.size() > 0) {
+					sb.append(" AND ( ");
+				}
 				for(int i=0;i<relations.size();i++){
 					sb.append("associationPredicate.associationName = '" + relations.get(i) + "'");
 					if(i == relations.size() -1 ){
@@ -735,7 +727,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	    		 sourceCol + ", " +
 	    		 " entityProperty." + SQLTableConstants.TBLCOL_PROPERTYVALUE + ", " +
 	    		 " entityProperty." + SQLTableConstants.TBLCOL_REPRESENTATIONALFORM + ", " +
-	    		 " propSourceQual." + SQLTableConstants.TBLCOL_ATTRIBUTEVALUE + " AS " + SOURCE_QUAL_COL + ", " +
+	    		 " assocSourceQual." + SQLTableConstants.TBLCOL_QUALIFIERVALUE + " AS " + SOURCE_QUAL_COL + ", " +
 	    		 " sourceCodeQual." + "attributeValue AS " + SOURCE_CODE_QUAL_COL + ", " +
 	    		 " relaQual."+ SQLTableConstants.TBLCOL_QUALIFIERVALUE + " AS " + RELA_QUAL_COL +
 	    		 " FROM " + this.getTableName(ENTITY_ASSOCIATION_TO_ENTITY) +
@@ -777,50 +769,35 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
                  " = '" + AUI_TARGET_QUAL_VALUE + "' )" +
  
                  " INNER JOIN " + this.getTableName(ENTITY_PROPERTY_MULTI_ATTRIBUTES) +
-                 " AS entityPropertyMultiAttrib ON ( " +
-                 " entityPropertyMultiAttrib.attributeId" + 
-                 " = " + auiCol + ".qualifierValue )" +
+                 " AS sourceAuiPropQual ON ( " +
+                 " sourceAuiPropQual.attributeValue" + 
+                 " = " + auiCol + ".qualifierValue " +
+                 " AND " +
+                 " sourceAuiPropQual.attributeId = '" + AUI_QUAL_VALUE + "' )" +
+                 
+                 " INNER JOIN " + this.getTableName(ENTITY_PROPERTY) +
+                 " AS entityProperty ON ( " +
+                 " entityProperty.propertyGuid = sourceAuiPropQual.propertyGuid )" +
                  
                  " INNER JOIN " + this.getTableName(ENTITY_PROPERTY_MULTI_ATTRIBUTES) +
                  " AS sourceCodeQual ON ( " +
-                 " sourceCodeQual.attributeId" + 
-                 " = " + auiCol + ".qualifierValue " +
-                 " AND " + 
-                 " sourceCodeQual." + SQLTableConstants.TBLCOL_ATTRIBUTEVALUE +
-                 " = '" + SOURCE_CODE_QUAL_VALUE + "' )" +
-              
-                 " INNER JOIN " + this.getTableName(ENTITY_PROPERTY_MULTI_ATTRIBUTES) +
-                 " AS propSourceQual ON ( " +
-                 " propSourceQual.attributeId" + 
-                 " = " + auiCol + ".qualifierValue " +
-                 " AND " + 
-                 " propSourceQual.attributeType"  +
-                 " = '" + SQLTableConstants.TBLCOLVAL_SOURCE + "' )" +
-                 
-                 " INNER JOIN " + this.getTableName(ENTITY_PROPERTY) +
-                 " AS entityProperty ON (" +
-                 " entityProperty.propertyGuid" + 
-                 " = entityPropertyMultiAttrib.propertyGuid" +
-                 " AND " + 
-                 " entityProperty." + SQLTableConstants.TBLCOL_PROPERTYID +
-                 " = entityPropertyMultiAttrib.attributeId )" +
-                  
+                 " sourceCodeQual.propertyGuid" + 
+                 " = entityProperty.propertyGuid " +
+                 " AND " +
+                 " sourceCodeQual.attributeId = '" + SOURCE_CODE_QUAL_VALUE + "' )" +
+    
 	             " WHERE " +
 	             targetCol  + " = ? " +   
 	             " AND " +
-                 " entityPropertyMultiAttrib.attributeId" + 
-                 " = " + auiCol + ".qualifierValue " +
-                 " AND " +
-                 " entityPropertyMultiAttrib." + SQLTableConstants.TBLCOL_ATTRIBUTEVALUE +
-                 " = '" + AUI_QUAL_VALUE + "' " +
-	             " AND " +
 	             targetCol + " != '" + ROOT + "' " +
 	             " AND " +
-	             targetCol + " != '" + TAIL + "' " +
-	             " AND ( ";
+	             targetCol + " != '" + TAIL + "' ";
 		
 				sb.append(sql);
 		
+				if(relations.size() > 0) {
+					sb.append(" AND ( ");
+				}
 				for(int i=0;i<relations.size();i++){
 					sb.append("ap.associationName = '" + relations.get(i) + "'");
 					if(i == relations.size() -1 ){
@@ -870,15 +847,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	 * @throws Exception the exception
 	 */
 	private List<String> buildAssociationList() throws Exception {
-		List<String> returnList = new ArrayList<String>();
-		CodingScheme cs = this.getLexBIGService().resolveCodingScheme(internalName, Constructors.createCodingSchemeVersionOrTagFromVersion(internalVersion));
-		for(SupportedAssociation assoc : cs.getMappings().getSupportedAssociation()){
-			String assocName = assoc.getLocalId();
-			returnList.add(assocName);
-			associationReverseNames.put(assocName, 
-					this.getAssociationReverseName(cs, assocName));
-		}
-		return returnList;
+		return new ArrayList<String>(this.relReverseNames.keySet());
 	}
 	
 	/* (non-Javadoc)
@@ -952,6 +921,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		getRelationsSql =
 			buildBySourceCountSql(source, direction, relationships, excludeSelfReferencing);
 
+		System.out.println(getRelationsSql);
 		return this.getJdbcTemplate().queryForInt(getRelationsSql, new String[] {cui});
 	}
 

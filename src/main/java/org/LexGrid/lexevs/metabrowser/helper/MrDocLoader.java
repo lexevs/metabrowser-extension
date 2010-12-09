@@ -40,8 +40,14 @@ public class MrDocLoader {
 	/** The RELA. */
 	private static String RELA = "RELA";
 	
+	/** The RELA. */
+	private static String REL = "REL";
+	
 	/** The REL a_ inverse. */
 	private static String RELA_INVERSE = "rela_inverse";
+	
+	/** The REL a_ inverse. */
+	private static String REL_INVERSE = "rel_inverse";
 
 	/**
 	 * The main method.
@@ -72,6 +78,21 @@ public class MrDocLoader {
 		}
 		
 		return relasAndInverses;
+	}
+	
+	public Map<String,String> getRelsAndReverseRels(){
+		Map<String,String> relsAndInverses = new HashMap<String,String>();
+		List<String> lines = readText(MRDOC_FILE);
+		
+		for(String line : lines){
+			String[] tokens = line.split("\\|");
+			if(tokens[0].equals(REL) &&
+					tokens[2].equals(REL_INVERSE) && tokens.length > 3){
+				relsAndInverses.put(tokens[1], tokens[3]);
+			}
+		}
+		
+		return relsAndInverses;
 	}
 
 	/**

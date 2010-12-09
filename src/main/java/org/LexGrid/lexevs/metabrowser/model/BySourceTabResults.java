@@ -176,4 +176,18 @@ public class BySourceTabResults implements Serializable {
 	public void setCode(String code) {
 		this.code = code;
 	}
+	
+	public String toString() {
+		StringBuffer sb = new StringBuffer();
+		
+		sb.append("CUI: " + this.cui);
+		sb.append(" REL: " + this.rel);
+		sb.append(" RELA: " + this.rela);
+		sb.append(" TERM: " + this.term);
+		sb.append(" SOURCE: " + this.source);
+		sb.append(" TYPE: " + this.type);
+		sb.append(" CODE: " + this.code);
+		
+		return sb.toString();
+	}
 }
