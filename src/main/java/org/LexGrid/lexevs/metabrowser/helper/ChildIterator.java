@@ -18,46 +18,32 @@
  */
 package org.LexGrid.lexevs.metabrowser.helper;
 
-import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.LexGrid.LexBIG.Exceptions.LBException;
 import org.LexGrid.LexBIG.Impl.LexBIGServiceImpl;
+import org.LexGrid.annotations.LgClientSideSafe;
 import org.LexGrid.lexevs.metabrowser.MetaBrowserService;
 import org.LexGrid.lexevs.metabrowser.MetaBrowserService.Direction;
 import org.LexGrid.lexevs.metabrowser.impl.MetaBrowserServiceImpl;
 import org.LexGrid.lexevs.metabrowser.model.BySourceTabResults;
 import org.LexGrid.lexevs.metabrowser.model.MetaTreeNode;
 import org.LexGrid.lexevs.metabrowser.model.MetaTreeNode.ExpandedState;
+import org.lexevs.paging.AbstractPageableIterator;
 
 /**
  * The Class ChildIterator.
  * 
  * @author <a href="mailto:kevin.peterson@mayo.edu">Kevin Peterson</a>
  */
-public class ChildIterator implements Iterator<MetaTreeNode>, Iterable<MetaTreeNode>, Serializable {
+@LgClientSideSafe
+public class ChildIterator extends AbstractPageableIterator<MetaTreeNode> {
 
 	/** The Constant serialVersionUID. */
 	private static final long serialVersionUID = -968792678746451575L;
 
-	/** The page size. */
-	private int pageSize = 10;
-	
-	/** The child list. */
-	private List<MetaTreeNode> childList = new ArrayList<MetaTreeNode>();
-	
-	/** The children. */
-	private int children;
-	
-	/** The position. */
-	private int position = 0;
-	
-	/** The paged list position. */
-	private int pagedListPosition = 0;
-	
 	/** The service. */
 	private transient MetaBrowserService service;
 	
@@ -104,72 +90,51 @@ public class ChildIterator implements Iterator<MetaTreeNode>, Iterable<MetaTreeN
 		this.relations = relations;
 		this.direction = direction;
 		this.service = service;
-		this.children = children;
 		this.parent = parent;
 	}
-	
-	/* (non-Javadoc)
-	 * @see java.util.Iterator#hasNext()
-	 */
-	public boolean hasNext() {
-		return position < children;
-	}
+
 
 	/* (non-Javadoc)
 	 * @see java.util.Iterator#next()
 	 */
 	public MetaTreeNode next() {
-		if(childList.size() == pagedListPosition){
-			try {
-				page();
-			} catch (LBException e) {
-				throw new RuntimeException(e);
-			}
-		} 
-		MetaTreeNode node = childList.get(pagedListPosition);
+		MetaTreeNode node = super.next();
 		
 		if(parent != null && node.getCui().equals(this.parent.getCui())){
 			node = parent;
 		}
-		
-		pagedListPosition++;
-		this.position++;
-		
+
 		return node;
 	}
+	
+	@Override
+	protected List<? extends MetaTreeNode> doPage(int currentPosition,
+			int pageSize) {
+		try{
+			if(this.service == null){
+				this.service = (MetaBrowserService) LexBIGServiceImpl.defaultInstance().getGenericExtension("metabrowser-extension");
+			}
+			
+			Map<String, List<BySourceTabResults>> list = this.service.
+			getBySourceTabDisplay(
+					cui, 
+					source, 
+					relations, 
+					direction, 
+					true, 
+					currentPosition, 
+					pageSize);
+	
 
-	/**
-	 * Page.
-	 * 
-	 * @throws LBException the LB exception
-	 */
-	protected void page() throws LBException{
-		if(this.service == null){
-			this.service = (MetaBrowserService) LexBIGServiceImpl.defaultInstance().getGenericExtension("metabrowser-extension");
-		}
-		Map<String, List<BySourceTabResults>> list = this.service.
-		getBySourceTabDisplay(
-				cui, 
-				source, 
-				relations, 
-				direction, 
-				true, 
-				position, 
-				pageSize);
-		
 		List<BySourceTabResults> bySourceChildResults = list.get(MetaBrowserServiceImpl.PAR_REL);
-	
-		this.childList = toMetaTreeNodeList(bySourceChildResults);
-		this.pagedListPosition = 0;
+
+		return toMetaTreeNodeList(bySourceChildResults);
 		
+		} catch(Exception e){
+			throw new RuntimeException(e);
+		}
 	}
 	
-	/* (non-Javadoc)
-	 * @see java.util.Iterator#remove()
-	 */
-	public void remove() {
-		throw new UnsupportedOperationException();
-	}
 	
 	/**
 	 * To meta tree node list.
@@ -212,12 +177,5 @@ public class ChildIterator implements Iterator<MetaTreeNode>, Iterable<MetaTreeN
 			throw new RuntimeException(e);
 		}
 		return node;
-	}
-
-	/* (non-Javadoc)
-	 * @see java.lang.Iterable#iterator()
-	 */
-	public Iterator<MetaTreeNode> iterator() {
-		return this;
 	}
 }
