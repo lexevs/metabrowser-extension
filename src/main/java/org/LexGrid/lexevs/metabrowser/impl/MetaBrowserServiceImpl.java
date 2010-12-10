@@ -790,7 +790,6 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 					sb.append(" OFFSET " + start);
 				}	
 				
-				System.out.println(sb);
 		return sb.toString();
 	}
 	
@@ -890,7 +889,6 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		getRelationsSql =
 			buildBySourceCountSql(source, direction, relationships, excludeSelfReferencing);
 
-		System.out.println(getRelationsSql);
 		return this.getJdbcTemplate().queryForInt(getRelationsSql, new String[] {cui});
 	}
 
