@@ -138,6 +138,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	private static String ASSOCIATION_PREDICATE = "associationPredicate";
 	private static String ENTITY_PROPERTY_MULTI_ATTRIBUTES = "propertyMultiAttrib";
 	private static String ENTITY_PROPERTY = "property";
+	private static String ENTITY_DESCRIPTION = "description";
 
 	
 	public static void main(String[] args) throws Exception {
@@ -353,7 +354,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 						targetConceptCode = rs.getString("targetEntityCode");
 					}
 
-					String entityDescription = rs.getString(SQLTableConstants.TBLCOL_ENTITYDESCRIPTION);
+					String entityDescription = ENTITY_DESCRIPTION;
 					String sourceQualValue = rs.getString(SOURCE_QUAL_COL);
 
 					String relaQualValue = rs.getString(RELA_QUAL_COL);
@@ -601,7 +602,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	    		 "SELECT " + 
 	    		 "associationPredicate.associationName AS " + REL_COL + ", " +
 	    		 sourceCol + ", " +
-	    		 " entity."+ SQLTableConstants.TBLCOL_ENTITYDESCRIPTION + ", " +
+	    		 " entity."+ ENTITY_DESCRIPTION + ", " +
 	    		 " sourceQual."+ SQLTableConstants.TBLCOL_QUALIFIERVALUE + " AS " + SOURCE_QUAL_COL + ", " +
 	    		 " relaQual."+ SQLTableConstants.TBLCOL_QUALIFIERVALUE + " AS " + RELA_QUAL_COL +
 	    		 " FROM " + this.getTableName(ENTITY_ASSOCIATION_TO_ENTITY) +
