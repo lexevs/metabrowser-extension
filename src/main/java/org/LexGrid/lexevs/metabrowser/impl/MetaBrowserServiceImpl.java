@@ -354,7 +354,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 						targetConceptCode = rs.getString("targetEntityCode");
 					}
 
-					String entityDescription = ENTITY_DESCRIPTION;
+					String entityDescription = rs.getString(ENTITY_DESCRIPTION);
 					String sourceQualValue = rs.getString(SOURCE_QUAL_COL);
 
 					String relaQualValue = rs.getString(RELA_QUAL_COL);
