@@ -26,6 +26,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.LexGrid.LexBIG.DataModel.InterfaceElements.ExtensionDescription;
 import org.LexGrid.LexBIG.Exceptions.LBException;
@@ -51,6 +55,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.ResultSetExtractor;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 
 /**
@@ -146,12 +151,6 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	private static String ENTITY_PROPERTY_MULTI_ATTRIBUTES = "propertyMultiAttrib";
 	private static String ENTITY_PROPERTY = "property";
 	private static String ENTITY_DESCRIPTION = "description";
-
-	
-	public static void main(String[] args) throws Exception {
-		MetaBrowserService ext = new MetaBrowserServiceImpl();
-		System.out.println(ext.getBySourceTabDisplay("C1333105", "MSH", null, Direction.SOURCEOF));
-	}
 	
 	/**
 	 * Inits the extension.
@@ -965,19 +964,34 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	@Override
 	public List<SemanticTypeHolder> getSemanticType(final List<String> cuis)
 	throws LBException {
-		return this.getJdbcTemplate().query(
-				createSemanticTypeSelectSql(cuis.size()), 
-				new PreparedStatementSetter(){
+		if(SemTypeCache.instance().isDone()){
+			System.out.println("Using cache");
+			
+			List<SemanticTypeHolder> returnList = new ArrayList<SemanticTypeHolder>();
 
-					@Override
-					public void setValues(PreparedStatement ps)
+			for (String cui : cuis) {
+				String semanticType = SemTypeCache.instance().getSemanticType(cui);
+				returnList.add(new SemanticTypeHolder(cui, semanticType));
+			}
+
+			return returnList;
+		} else {
+			System.out.println("Cache not ready -- querying database.");
+
+			return this.getJdbcTemplate().query(
+					createSemanticTypeSelectSql(cuis.size()), 
+					new PreparedStatementSetter(){
+
+						@Override
+						public void setValues(PreparedStatement ps)
 						throws SQLException {
-						for(int i=0;i<cuis.size();i++){
-							ps.setString(i+1, cuis.get(i));
+							for(int i=0;i<cuis.size();i++){
+								ps.setString(i+1, cuis.get(i));
+							}
 						}
-					}
 
-				},SEMANTIC_TYPE_ROWMAPPER);
+					},SEMANTIC_TYPE_ROWMAPPER);
+		}
 	}
 	
 	private static class SemanticTypeRowMapper implements RowMapper, Serializable {
@@ -1037,5 +1051,124 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 			this.jdbcTemplate = new JdbcTemplate(LexEvsServiceLocator.getInstance().getLexEvsDatabaseOperations().getDataSource());
 		}
 		return this.jdbcTemplate;
+	}
+	
+	private static class SemTypeCache {
+		private static SemTypeCache semTypeCache;
+		
+		private static String C_CODE = "10";
+		private static String CL_CODE = "11";
+		
+		/** The rela reverse names. */
+		private Map<Integer,String> semanticTypeIntToTypeMap = new HashMap<Integer,String>();
+		
+		private Map<Integer,Integer> semanticTypeCodeToIntMap = new HashMap<Integer,Integer>();
+		
+		private JdbcTemplate jdbcTemplate;
+		private boolean isDone = false;
+		
+		private SemTypeCache(){
+			this.jdbcTemplate = new JdbcTemplate(LexEvsServiceLocator.getInstance().getLexEvsDatabaseOperations().getDataSource());
+			this.jdbcTemplate.setFetchSize(100);
+		}
+		
+		protected static synchronized SemTypeCache instance(){
+			if(semTypeCache == null){
+				semTypeCache = new SemTypeCache();
+
+				ExecutorService executor = Executors.newCachedThreadPool();
+
+				executor.submit(new Callable<Void>(){
+					
+					@Override
+					public Void call() throws Exception {
+						semTypeCache.populateCache();
+						
+						return null;
+					}
+				});
+			}
+			
+			return semTypeCache;
+		}
+		
+		protected void populateCache(){
+			final Map<String,Integer> semTypeIntMap = new HashMap<String,Integer>();
+			
+			StringBuilder sb = new StringBuilder();
+			sb.append(" SELECT entity.entityCode, entityProperty.propertyValue ");
+			sb.append(" FROM " + getTableName(ENTITY) + " entity ");
+			sb.append(" INNER JOIN " + getTableName(ENTITY_PROPERTY) + " entityProperty");
+			sb.append(" ON (entity.entityGuid = entityProperty.referenceGuid)" );
+			sb.append(" WHERE entityProperty.propertyName = '" + RrfLoaderConstants.SEMANTIC_TYPES_PROPERTY + "'");
+			
+			this.jdbcTemplate.query(sb.toString(), new RowCallbackHandler(){
+				
+				int semTypeCounter = 0;
+				
+				@Override
+				public void processRow(ResultSet rs) throws SQLException {
+					String cui = rs.getString("entityCode");
+					String semType = rs.getString("propertyValue");
+					int semTypeInt;
+					
+					int cuiInt = cuiToInt(cui);
+					
+					if(! semTypeIntMap.containsKey(semType)){
+						semTypeIntMap.put(semType, semTypeCounter);
+						semTypeInt = semTypeCounter;
+						
+						semTypeCounter++;
+					} else {
+						semTypeInt = semTypeIntMap.get(semType);
+					}
+					
+					semanticTypeCodeToIntMap.put(cuiInt, semTypeInt);
+
+				}
+				
+			});
+			
+			for(Entry<String, Integer> entry : semTypeIntMap.entrySet()){
+				semanticTypeIntToTypeMap.put(entry.getValue(), entry.getKey());
+			}
+			
+			this.isDone = true;
+		}
+		
+		private String getTableName(String tableName) {
+			try {
+				String version = 
+					LexEvsServiceLocator.getInstance().getSystemResourceService().getInternalVersionStringForTag(CODING_SCHEME_NAME, null);
+				String prefix = LexEvsServiceLocator.getInstance().
+					getLexEvsDatabaseOperations().
+						getPrefixResolver().
+						resolvePrefixForCodingScheme(CODING_SCHEME_URI, version);
+				return prefix + tableName;
+			} catch (LBParameterException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	
+		public int cuiToInt(String cui){
+			if(cui.startsWith("CL")){
+				cui = cui.replaceFirst("CL", CL_CODE);
+			} else {
+				cui = cui.replaceFirst("C", C_CODE);
+			}
+			return Integer.valueOf(cui);
+		}
+		
+		public String getSemanticType(String cui){
+			int cuiInt = this.cuiToInt(cui);
+			
+			int semTypeInt = semanticTypeCodeToIntMap.get(cuiInt);
+			
+			return semanticTypeIntToTypeMap.get(semTypeInt);
+		}
+		
+		public boolean isDone(){
+			return this.isDone;
+		}
 	}
 }
