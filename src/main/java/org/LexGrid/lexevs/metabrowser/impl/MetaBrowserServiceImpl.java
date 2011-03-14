@@ -1009,8 +1009,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		sb.append(")" );
 		
 		sb.append(" AND entityProperty.propertyName = '" + RrfLoaderConstants.SEMANTIC_TYPES_PROPERTY + "'");
-		
-		System.out.println(sb);
+
 		return sb.toString();
 	}
 
