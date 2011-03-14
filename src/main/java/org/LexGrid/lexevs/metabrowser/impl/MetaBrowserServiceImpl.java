@@ -47,6 +47,7 @@ import org.LexGrid.lexevs.metabrowser.model.RelationshipTabResults;
 import org.LexGrid.lexevs.metabrowser.model.SemanticTypeHolder;
 import org.LexGrid.util.sql.lgTables.SQLTableConstants;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.log4j.Logger;
 import org.lexevs.locator.LexEvsServiceLocator;
 import org.lexevs.system.service.SystemResourceService;
 import org.lexgrid.loader.meta.constants.MetaLoaderConstants;
@@ -64,6 +65,8 @@ import org.springframework.jdbc.core.RowMapper;
  * @author <a href="mailto:kevin.peterson@mayo.edu">Kevin Peterson</a>
  */
 public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBrowserService {
+	
+	private Logger logger = Logger.getLogger(MetaBrowserServiceImpl.class);
 
 	/** The CODIN g_ schem e_ name. */
 	public static String CODING_SCHEME_NAME = "NCI MetaThesaurus";
@@ -965,7 +968,8 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	public List<SemanticTypeHolder> getSemanticType(final List<String> cuis)
 	throws LBException {
 		if(SemTypeCache.instance().isDone()){
-			System.out.println("Using cache");
+
+			logger.info("Using Semantic Type cache");
 			
 			List<SemanticTypeHolder> returnList = new ArrayList<SemanticTypeHolder>();
 
@@ -976,7 +980,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 
 			return returnList;
 		} else {
-			System.out.println("Cache not ready -- querying database.");
+			logger.info("Semantic Type Cache not ready -- querying database.");
 
 			return this.getJdbcTemplate().query(
 					createSemanticTypeSelectSql(cuis.size()), 
@@ -1069,7 +1073,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		
 		private SemTypeCache(){
 			this.jdbcTemplate = new JdbcTemplate(LexEvsServiceLocator.getInstance().getLexEvsDatabaseOperations().getDataSource());
-			this.jdbcTemplate.setFetchSize(100);
+			this.jdbcTemplate.setFetchSize(1000);
 		}
 		
 		protected static synchronized SemTypeCache instance(){
