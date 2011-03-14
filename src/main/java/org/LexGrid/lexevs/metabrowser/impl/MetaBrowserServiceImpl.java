@@ -18,6 +18,7 @@
  */
 package org.LexGrid.lexevs.metabrowser.impl;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -38,6 +39,7 @@ import org.LexGrid.lexevs.metabrowser.MetaTree;
 import org.LexGrid.lexevs.metabrowser.helper.MrDocLoader;
 import org.LexGrid.lexevs.metabrowser.model.BySourceTabResults;
 import org.LexGrid.lexevs.metabrowser.model.RelationshipTabResults;
+import org.LexGrid.lexevs.metabrowser.model.SemanticTypeHolder;
 import org.LexGrid.util.sql.lgTables.SQLTableConstants;
 import org.apache.commons.collections.CollectionUtils;
 import org.lexevs.locator.LexEvsServiceLocator;
@@ -46,7 +48,9 @@ import org.lexgrid.loader.meta.constants.MetaLoaderConstants;
 import org.lexgrid.loader.rrf.constants.RrfLoaderConstants;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.ResultSetExtractor;
+import org.springframework.jdbc.core.RowMapper;
 
 /**
  * The Class MetaBrowserServiceImpl.
@@ -327,7 +331,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	 * 
 	 * @throws SQLException the SQL exception
 	 */
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private Map<String, List<RelationshipTabResults>> buildRelationshipTabResults(
 			String sql, 
 			String cui,
@@ -386,7 +390,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	 * 
 	 * @throws SQLException the SQL exception
 	 */
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private Map<String, List<BySourceTabResults>> buildBySourceTabResults(
 			String sql,
 			String cui, 
@@ -952,6 +956,54 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 			sabRootNodeCache.put(source, tree.getCurrentFocus().getCui());
 			return tree;
 		}
+	}
+
+	@Override
+	public List<SemanticTypeHolder> getSemanticType(final List<String> cuis)
+	throws LBException {
+		return this.getJdbcTemplate().query(
+				createSemanticTypeSelectSql(cuis.size()), 
+				new PreparedStatementSetter(){
+
+					@Override
+					public void setValues(PreparedStatement ps)
+						throws SQLException {
+						for(int i=0;i<cuis.size();i++){
+							ps.setString(i+1, cuis.get(i));
+						}
+					}
+
+				}, new RowMapper<SemanticTypeHolder>(){
+
+					@Override
+					public SemanticTypeHolder mapRow(ResultSet rs, int param)
+						throws SQLException {
+						return new SemanticTypeHolder(rs.getString("entityCode"), rs.getString("propertyValue"));
+					}
+				});
+	}
+
+	private String createSemanticTypeSelectSql(int number){
+		StringBuilder sb = new StringBuilder();
+		sb.append(" SELECT entity.entityCode, entityProperty.propertyValue ");
+		sb.append(" FROM " + this.getTableName(ENTITY) + " entity ");
+		sb.append(" INNER JOIN " + this.getTableName(ENTITY_PROPERTY) + " entityProperty");
+		sb.append(" ON (entity.entityGuid = entityProperty.referenceGuid)" );
+		sb.append(" WHERE entity.entityCode IN (" );
+		
+		for(int i=0;i<number;i++){
+			sb.append("?");
+			if(i < number-1){
+				sb.append(",");
+			}
+		}
+		
+		sb.append(")" );
+		
+		sb.append(" AND entityProperty.propertyName = '" + RrfLoaderConstants.SEMANTIC_TYPES_PROPERTY + "'");
+		
+		System.out.println(sb);
+		return sb.toString();
 	}
 
 	/* (non-Javadoc)

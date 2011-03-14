@@ -25,8 +25,8 @@ import org.LexGrid.LexBIG.Exceptions.LBException;
 import org.LexGrid.LexBIG.Extensions.Generic.GenericExtension;
 import org.LexGrid.LexBIG.LexBIGService.LexBIGService;
 import org.LexGrid.lexevs.metabrowser.model.BySourceTabResults;
-import org.LexGrid.lexevs.metabrowser.model.MetaTreeNode;
 import org.LexGrid.lexevs.metabrowser.model.RelationshipTabResults;
+import org.LexGrid.lexevs.metabrowser.model.SemanticTypeHolder;
 
 /**
  * The Interface MetaBrowserService.
@@ -247,5 +247,7 @@ public interface MetaBrowserService extends GenericExtension {
 	 * @throws LBException the LB exception
 	 */
 	public MetaTree getMetaNeighborhood(String source) throws LBException;
+	
+	public List<SemanticTypeHolder> getSemanticType(List<String> cui) throws LBException;
 
 }
