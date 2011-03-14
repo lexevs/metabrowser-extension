@@ -1,7 +1,7 @@
 <project name="CustomExtensionExample" default="dist" basedir=".">
 
   <!-- set global properties for this build -->
-  <property name="version" value="2.0.3"/>
+  <property name="version" value="2.0.4"/>
   <property name="src" location="src/main/java"/>
   <property name="build" location="build"/>
   <property name="dist"  location="dist"/>
