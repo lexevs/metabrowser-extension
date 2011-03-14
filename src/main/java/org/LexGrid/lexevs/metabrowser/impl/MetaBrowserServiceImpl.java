@@ -18,6 +18,7 @@
  */
 package org.LexGrid.lexevs.metabrowser.impl;
 
+import java.io.Serializable;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -135,6 +136,8 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	
 	/** The sql interface. */
 	private transient JdbcTemplate jdbcTemplate;
+	
+	private static SemanticTypeRowMapper SEMANTIC_TYPE_ROWMAPPER = new SemanticTypeRowMapper();
 	
 	private static String ENTITY_ASSOCIATION_TO_ENTITY = "entityAssnsToEntity";
 	private static String ENTITY_ASSOCIATION_TO_E_QUALS = "entityAssnQuals";
@@ -973,15 +976,19 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 						}
 					}
 
-				}, new RowMapper<SemanticTypeHolder>(){
-
-					@Override
-					public SemanticTypeHolder mapRow(ResultSet rs, int param)
-						throws SQLException {
-						return new SemanticTypeHolder(rs.getString("entityCode"), rs.getString("propertyValue"));
-					}
-				});
+				},SEMANTIC_TYPE_ROWMAPPER);
 	}
+	
+	private static class SemanticTypeRowMapper implements RowMapper<SemanticTypeHolder>, Serializable {
+
+		private static final long serialVersionUID = 8190790713921725472L;
+
+		@Override
+		public SemanticTypeHolder mapRow(ResultSet rs, int param)
+			throws SQLException {
+			return new SemanticTypeHolder(rs.getString("entityCode"), rs.getString("propertyValue"));
+		}
+	};
 
 	private String createSemanticTypeSelectSql(int number){
 		StringBuilder sb = new StringBuilder();
