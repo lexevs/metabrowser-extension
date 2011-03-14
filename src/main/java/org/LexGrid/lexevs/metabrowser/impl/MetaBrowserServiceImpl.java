@@ -334,7 +334,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	 * 
 	 * @throws SQLException the SQL exception
 	 */
-	@SuppressWarnings({ "unchecked", "rawtypes" })
+	@SuppressWarnings({ "unchecked"})
 	private Map<String, List<RelationshipTabResults>> buildRelationshipTabResults(
 			String sql, 
 			String cui,
@@ -393,7 +393,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	 * 
 	 * @throws SQLException the SQL exception
 	 */
-	@SuppressWarnings({ "unchecked", "rawtypes" })
+	@SuppressWarnings({ "unchecked"})
 	private Map<String, List<BySourceTabResults>> buildBySourceTabResults(
 			String sql,
 			String cui, 
@@ -961,6 +961,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public List<SemanticTypeHolder> getSemanticType(final List<String> cuis)
 	throws LBException {
@@ -979,7 +980,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 				},SEMANTIC_TYPE_ROWMAPPER);
 	}
 	
-	private static class SemanticTypeRowMapper implements RowMapper<SemanticTypeHolder>, Serializable {
+	private static class SemanticTypeRowMapper implements RowMapper, Serializable {
 
 		private static final long serialVersionUID = 8190790713921725472L;
 
