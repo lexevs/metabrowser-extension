@@ -20,11 +20,14 @@ package org.LexGrid.lexevs.metabrowser.model;
 
 import java.io.Serializable;
 
+import org.LexGrid.annotations.LgClientSideSafe;
+
 /**
  * The Class SemanticTypeHolder.
  *
  * @author <a href="mailto:kevin.peterson@mayo.edu">Kevin Peterson</a>
  */
+@LgClientSideSafe
 public class SemanticTypeHolder implements Serializable {
 
 	/** The Constant serialVersionUID. */
@@ -51,6 +54,7 @@ public class SemanticTypeHolder implements Serializable {
 	/* (non-Javadoc)
 	 * @see java.lang.Object#toString()
 	 */
+	@LgClientSideSafe
 	public String toString(){
 		return "CUI: " + this.cui + ", Semantic Type: " + this.semanticType;
 	}
@@ -60,6 +64,7 @@ public class SemanticTypeHolder implements Serializable {
 	 *
 	 * @return the cui
 	 */
+	@LgClientSideSafe
 	public String getCui() {
 		return cui;
 	}
@@ -78,6 +83,7 @@ public class SemanticTypeHolder implements Serializable {
 	 *
 	 * @return the semantic type
 	 */
+	@LgClientSideSafe
 	public String getSemanticType() {
 		return semanticType;
 	}
