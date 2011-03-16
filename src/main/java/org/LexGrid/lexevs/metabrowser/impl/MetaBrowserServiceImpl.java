@@ -1096,6 +1096,8 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 						return null;
 					}
 				});
+				
+				executor.shutdown();
 			}
 			
 			return semTypeCache;
