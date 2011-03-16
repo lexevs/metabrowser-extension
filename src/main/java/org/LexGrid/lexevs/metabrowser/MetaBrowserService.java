@@ -248,6 +248,12 @@ public interface MetaBrowserService extends GenericExtension {
 	 */
 	public MetaTree getMetaNeighborhood(String source) throws LBException;
 	
+	/**
+	 * Gets the semantic type given a set of cuis.
+	 *
+	 * @param cui the cui
+	 * @return the semantic type
+	 * @throws LBException the LB exception
+	 */
 	public List<SemanticTypeHolder> getSemanticType(List<String> cui) throws LBException;
-
 }

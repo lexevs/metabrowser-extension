@@ -125,6 +125,8 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	/** The TAIL. */
 	private static String TAIL = "@@";
 	
+	private static String SEMANTIC_TYPE_SEPARATOR = ";";
+	
 	/** The sab root node cache. */
 	private Map<String,String> sabRootNodeCache = new HashMap<String,String>();
 	
@@ -995,21 +997,24 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 					},SEMANTIC_TYPE_ROWMAPPER);
 		}
 	}
-	
+
 	private static class SemanticTypeRowMapper implements RowMapper, Serializable {
 
 		private static final long serialVersionUID = 8190790713921725472L;
+		
+		private static final String SEM_TYPE_COLUMN = "semType";
+		private static final String ENTITY_CODE_COLUMN = "code";
 
 		@Override
 		public SemanticTypeHolder mapRow(ResultSet rs, int param)
 			throws SQLException {
-			return new SemanticTypeHolder(rs.getString("entityCode"), rs.getString("propertyValue"));
+			return new SemanticTypeHolder(rs.getString(ENTITY_CODE_COLUMN), rs.getString(SEM_TYPE_COLUMN));
 		}
 	};
 
 	private String createSemanticTypeSelectSql(int number){
 		StringBuilder sb = new StringBuilder();
-		sb.append(" SELECT entity.entityCode, entityProperty.propertyValue ");
+		sb.append(" SELECT entity.entityCode " + SemanticTypeRowMapper.ENTITY_CODE_COLUMN + ", GROUP_CONCAT(entityProperty.propertyValue SEPARATOR '" + SEMANTIC_TYPE_SEPARATOR + "') " + SemanticTypeRowMapper.SEM_TYPE_COLUMN);
 		sb.append(" FROM " + this.getTableName(ENTITY) + " entity ");
 		sb.append(" INNER JOIN " + this.getTableName(ENTITY_PROPERTY) + " entityProperty");
 		sb.append(" ON (entity.entityGuid = entityProperty.referenceGuid)" );
@@ -1025,6 +1030,8 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		sb.append(")" );
 		
 		sb.append(" AND entityProperty.propertyName = '" + RrfLoaderConstants.SEMANTIC_TYPES_PROPERTY + "'");
+		
+		sb.append(" GROUP BY " + SemanticTypeRowMapper.ENTITY_CODE_COLUMN);
 
 		return sb.toString();
 	}
@@ -1055,7 +1062,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		return this.jdbcTemplate;
 	}
 	
-	private static class SemTypeCache {
+	public static class SemTypeCache {
 		private static SemTypeCache semTypeCache;
 		
 		private static String C_CODE = "10";
@@ -1074,7 +1081,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 			this.jdbcTemplate.setFetchSize(1000);
 		}
 		
-		protected static synchronized SemTypeCache instance(){
+		public static synchronized SemTypeCache instance(){
 			if(semTypeCache == null){
 				semTypeCache = new SemTypeCache();
 
@@ -1098,11 +1105,12 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 			final Map<String,Integer> semTypeIntMap = new HashMap<String,Integer>();
 			
 			StringBuilder sb = new StringBuilder();
-			sb.append(" SELECT entity.entityCode, entityProperty.propertyValue ");
+			sb.append(" SELECT entity.entityCode " + SemanticTypeRowMapper.ENTITY_CODE_COLUMN + ", GROUP_CONCAT(entityProperty.propertyValue SEPARATOR '" + SEMANTIC_TYPE_SEPARATOR + "') " + SemanticTypeRowMapper.SEM_TYPE_COLUMN);
 			sb.append(" FROM " + getTableName(ENTITY) + " entity ");
 			sb.append(" INNER JOIN " + getTableName(ENTITY_PROPERTY) + " entityProperty");
 			sb.append(" ON (entity.entityGuid = entityProperty.referenceGuid)" );
 			sb.append(" WHERE entityProperty.propertyName = '" + RrfLoaderConstants.SEMANTIC_TYPES_PROPERTY + "'");
+			sb.append(" GROUP BY " + SemanticTypeRowMapper.ENTITY_CODE_COLUMN);
 			
 			this.jdbcTemplate.query(sb.toString(), new RowCallbackHandler(){
 				
@@ -1110,8 +1118,8 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 				
 				@Override
 				public void processRow(ResultSet rs) throws SQLException {
-					String cui = rs.getString("entityCode");
-					String semType = rs.getString("propertyValue");
+					String cui = rs.getString(SemanticTypeRowMapper.ENTITY_CODE_COLUMN );
+					String semType = rs.getString(SemanticTypeRowMapper.SEM_TYPE_COLUMN);
 					int semTypeInt;
 					
 					int cuiInt = cuiToInt(cui);
