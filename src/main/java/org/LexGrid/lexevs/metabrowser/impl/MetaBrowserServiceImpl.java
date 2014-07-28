@@ -34,6 +34,7 @@ import java.util.concurrent.Executors;
 import org.LexGrid.LexBIG.DataModel.InterfaceElements.ExtensionDescription;
 import org.LexGrid.LexBIG.Exceptions.LBException;
 import org.LexGrid.LexBIG.Exceptions.LBParameterException;
+import org.LexGrid.LexBIG.Extensions.ExtensionRegistry;
 import org.LexGrid.LexBIG.Impl.LexBIGServiceImpl;
 import org.LexGrid.LexBIG.Impl.Extensions.AbstractExtendable;
 import org.LexGrid.LexBIG.LexBIGService.LexBIGService;
@@ -1182,5 +1183,12 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		public boolean isDone(){
 			return this.isDone;
 		}
+	}
+
+	@Override
+	protected void doRegister(ExtensionRegistry registry,
+			ExtensionDescription description) throws LBParameterException {
+		// TODO Auto-generated method stub
+		
 	}
 }
