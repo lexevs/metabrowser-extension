@@ -29,7 +29,7 @@ import org.junit.Test;
  * 
  * @author <a href="mailto:kevin.peterson@mayo.edu">Kevin Peterson</a>
  */
-public class GetRelationshipCountTest {
+public class GetRelationshipCountTest extends MetaBrowserServiceImplTest{
 	
 	/**
 	 * Test get count b souce tab source of.
@@ -73,7 +73,7 @@ public class GetRelationshipCountTest {
 
 		int count = impl.getCount("C0000726", null, Direction.SOURCEOF, false);
 		
-		assertTrue("Count: " + count, count == 22);
+		assertTrue("Count: " + count, count == 20);
 	}
 	
 	/**
@@ -88,7 +88,7 @@ public class GetRelationshipCountTest {
 
 		int count = impl.getCount("C0000726", null, Direction.TARGETOF);
 		
-		assertTrue("Count: " + count, count == 3);
+		assertTrue("Count: " + count, count == 20);
 	}
 	
 	/**
@@ -103,7 +103,7 @@ public class GetRelationshipCountTest {
 
 		int count = impl.getCount("C0000726", null, Direction.TARGETOF, true);
 		
-		assertTrue("Count: " + count, count == 3);
+		assertTrue("Count: " + count, count == 20);
 	}
 	
 	/**
@@ -118,6 +118,6 @@ public class GetRelationshipCountTest {
 
 		int count = impl.getCount("C0000726", null, Direction.TARGETOF, false);
 		
-		assertTrue("Count: " + count, count == 5);
+		assertTrue("Count: " + count, count == 20);
 	}
 }

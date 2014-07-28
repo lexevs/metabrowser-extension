@@ -32,7 +32,7 @@ import org.junit.Test;
  * 
  * @author <a href="mailto:kevin.peterson@mayo.edu">Kevin Peterson</a>
  */
-public class GetMetaTreeTest {
+public class GetMetaTreeTest extends MetaBrowserServiceImplTest{
 
 	/** The impl. */
 	private MetaBrowserService impl = new MetaBrowserServiceImpl();
@@ -47,10 +47,10 @@ public class GetMetaTreeTest {
 		//System.setProperty("LG_CONFIG_FILE", "src/test/resources/config/lbconfig.props");
 		MetaBrowserService impl = new MetaBrowserServiceImpl();
 
-		MetaTree tree = impl.getMetaNeighborhood("AIR");
+		MetaTree tree = impl.getMetaNeighborhood("NCI");
 		printMetaTreeNode(tree.getCurrentFocus(), 0);
 		
-		//tree = tree.focusMetaTreeNode("C0221566");
+//		tree = tree.focusMetaTreeNode("C0221566");
 		
 		System.out.println("++++++++++++++++++++++++++++++++++++++++++++++");
 		
@@ -61,7 +61,7 @@ public class GetMetaTreeTest {
 		System.out.println("++++++++++++++++++++++++++++++++++++++++++++++");
 		
 		//printMetaTreeNode(tree.getCurrentFocus(), 0);
-		tree = impl.getMetaNeighborhood("AIR");
+		tree = impl.getMetaNeighborhood("NCI");
 		
 	}
 	
@@ -76,7 +76,7 @@ public class GetMetaTreeTest {
 	private void printMetaTreeNode(MetaTreeNode node, int level) throws Exception {
 		System.out.println(getLevelIndent(level) + "CUI: " + node.getCui());
 		System.out.println(getLevelIndent(level) + "Name: " + node.getName());
-		System.out.println(getLevelIndent(level) + "Exapandable: " + node.getExpandedState());
+		System.out.println(getLevelIndent(level) + "Expandable: " + node.getExpandedState());
 		
 		System.out.println(getLevelIndent(level) + "Children: ");
 		if(node.getChildren() != null){

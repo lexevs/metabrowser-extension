@@ -20,15 +20,23 @@ package org.LexGrid.lexevs.metabrowser.impl;
 
 import static org.junit.Assert.*;
 
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 
+import org.LexGrid.LexBIG.DataModel.InterfaceElements.types.ProcessState;
+import org.LexGrid.LexBIG.Exceptions.LBException;
+import org.LexGrid.LexBIG.Extensions.Load.MetaBatchLoader;
+import org.LexGrid.LexBIG.Impl.LexBIGServiceImpl;
+import org.LexGrid.LexBIG.LexBIGService.LexBIGService;
+import org.LexGrid.LexBIG.LexBIGService.LexBIGServiceManager;
 import org.LexGrid.lexevs.metabrowser.MetaBrowserService;
 import org.LexGrid.lexevs.metabrowser.MetaBrowserService.Direction;
 import org.LexGrid.lexevs.metabrowser.impl.MetaBrowserServiceImpl;
 import org.LexGrid.lexevs.metabrowser.model.BySourceTabResults;
 import org.junit.Before;
 import org.junit.Test;
+import org.lexevs.locator.LexEvsServiceLocator;
 
 /**
  * The Class MetaBrowserServiceImplTest.
@@ -37,7 +45,28 @@ import org.junit.Test;
  */
 public class MetaBrowserServiceImplTest {
 
-	
+	@Before
+	public void setUp() throws Exception{
+		
+//		System.setProperty("LG_CONFIG_FILE", "src/test/resources/config/lbconfig.props");
+//		LexBIGService service = LexBIGServiceImpl.defaultInstance();
+//        LexBIGServiceManager lbsm = service.getServiceManager(null);
+//
+//        MetaBatchLoader loader = (MetaBatchLoader) lbsm.getLoader("MetaBatchLoader");
+//
+//        loader.loadMeta(new File("resources/SAMPLEMETA").toURI());
+//
+//        while (loader.getStatus().getEndTime() == null) {
+//            Thread.sleep(500);
+//        }
+//        assertTrue(loader.getStatus().getState().equals(ProcessState.COMPLETED));
+//        assertFalse(loader.getStatus().getErrorsLogged().booleanValue());
+//
+//        lbsm.activateCodingSchemeVersion(loader.getCodingSchemeReferences()[0]);
+		
+		 SetUpHelper.init();
+		 
+	}
 	
 	
 }

@@ -34,7 +34,7 @@ import org.junit.Test;
  * 
  * @author <a href="mailto:kevin.peterson@mayo.edu">Kevin Peterson</a>
  */
-public class GetRelationshipTabDisplayTest {
+public class GetRelationshipTabDisplayTest extends MetaBrowserServiceImplTest{
 	
 	/**
 	 * Test get relationships tab display source of exclude self referencing true.
@@ -48,7 +48,7 @@ public class GetRelationshipTabDisplayTest {
 
 		int count = impl.getCount("C0000726", null, null, Direction.TARGETOF, true);
 		
-		assertTrue("Count: " + count, count == 3);
+		assertTrue("Count: " + count, count == 20);
 	}
 	
 	/**
@@ -101,10 +101,10 @@ public class GetRelationshipTabDisplayTest {
 
 		Map<String,List<RelationshipTabResults>> results = impl.getRelationshipsDisplay("C0000726", null, Direction.SOURCEOF);
 		
-		RelationshipTabResults result = results.get("CHD").get(0);
+		RelationshipTabResults result = results.get("PAR").get(0);
 		
 		assertTrue(result.getCui().equals("C0000737"));
-		assertTrue(result.getRel().equals("CHD"));
+		assertTrue(result.getRel().equals("PAR"));
 		assertTrue(result.getRela() == null);
 		assertTrue(result.getSource().equals("CST"));
 		assertTrue(result.getName().equals("Abdominal Pain"));
