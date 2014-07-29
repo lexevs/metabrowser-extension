@@ -27,7 +27,7 @@ public class SetUpHelper {
         MetaBatchLoader loader = (MetaBatchLoader) lbsm.getLoader("MetaBatchLoader");
 
        loader.loadMeta(new File("src/test/resources/SAMPLEMETA").toURI());
-//        loader.loadMeta(new File("src/test/resources/sampleNciMeta").toURI());
+
         while (loader.getStatus().getEndTime() == null) {
             Thread.sleep(100000);
         }

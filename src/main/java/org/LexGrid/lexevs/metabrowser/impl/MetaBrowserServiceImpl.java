@@ -346,7 +346,6 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 
 		return (Map<String, List<RelationshipTabResults>>) this.getJdbcTemplate().query(sql, new String[] {cui}, new ResultSetExtractor() {
 
-			@Override
 			public Object extractData(ResultSet rs) throws SQLException,
 			DataAccessException {
 				while(rs.next()){
@@ -405,7 +404,6 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		
 		return (Map<String, List<BySourceTabResults>>) this.getJdbcTemplate().query(sql, new String[] {cui}, new ResultSetExtractor() {
 
-			@Override
 			public Object extractData(ResultSet rs) throws SQLException,
 					DataAccessException {
 				while(rs.next()){
@@ -965,7 +963,6 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	}
 
 	@SuppressWarnings("unchecked")
-	@Override
 	public List<SemanticTypeHolder> getSemanticType(final List<String> cuis)
 	throws LBException {
 		if(SemTypeCache.instance().isDone()){
@@ -987,7 +984,6 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 					createSemanticTypeSelectSql(cuis.size()), 
 					new PreparedStatementSetter(){
 
-						@Override
 						public void setValues(PreparedStatement ps)
 						throws SQLException {
 							for(int i=0;i<cuis.size();i++){
@@ -1006,7 +1002,6 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		private static final String SEM_TYPE_COLUMN = "semType";
 		private static final String ENTITY_CODE_COLUMN = "code";
 
-		@Override
 		public SemanticTypeHolder mapRow(ResultSet rs, int param)
 			throws SQLException {
 			return new SemanticTypeHolder(rs.getString(ENTITY_CODE_COLUMN), rs.getString(SEM_TYPE_COLUMN));
@@ -1090,7 +1085,6 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 
 				executor.submit(new Callable<Void>(){
 					
-					@Override
 					public Void call() throws Exception {
 						semTypeCache.populateCache();
 						
@@ -1119,7 +1113,6 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 				
 				int semTypeCounter = 0;
 				
-				@Override
 				public void processRow(ResultSet rs) throws SQLException {
 					String cui = rs.getString(SemanticTypeRowMapper.ENTITY_CODE_COLUMN );
 					String semType = rs.getString(SemanticTypeRowMapper.SEM_TYPE_COLUMN);
