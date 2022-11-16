@@ -256,9 +256,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	
 	/**
 	 * Gets the association reverse name.
-	 * 
-	 * @param cs the cs
-	 * @param associationName the association name
+	 *
 	 * 
 	 * @return the association reverse name
 	 * @throws LBException 
@@ -328,8 +326,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 
 	/**
 	 * Builds the relationship tab results.
-	 * 
-	 * @param rs the rs
+	 *
 	 * @param map the map
 	 * @param direction the direction
 	 * 
@@ -386,8 +383,7 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 	
 	/**
 	 * Builds the by source tab results.
-	 * 
-	 * @param rs the rs
+	 *
 	 * @param map the map
 	 * @param direction the direction
 	 * 
@@ -853,7 +849,8 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 			buildGetRelationshipsCountSql(direction, relationships, excludeSelfReferencing);
 
 
-		return this.getJdbcTemplate().queryForInt(getRelationsSql, new String[] {cui});
+//		return this.getJdbcTemplate().queryForInt(getRelationsSql, new String[] {cui});
+		return this.getJdbcTemplate().queryForObject(getRelationsSql,  Integer.class, new String[] {cui});
 	}
 	
 	/**
@@ -898,7 +895,9 @@ public class MetaBrowserServiceImpl extends AbstractExtendable implements MetaBr
 		getRelationsSql =
 			buildBySourceCountSql(source, direction, relationships, excludeSelfReferencing);
 
-		return this.getJdbcTemplate().queryForInt(getRelationsSql, new String[] {cui});
+//		return this.getJdbcTemplate().queryForInt(getRelationsSql, new String[] {cui});
+//		return this.getJdbcTemplate().queryForObject(getRelationsSql, new String[] {cui}, Integer.class);
+		return this.getJdbcTemplate().queryForObject(getRelationsSql,  Integer.class, new String[] {cui});
 	}
 
 	/* (non-Javadoc)

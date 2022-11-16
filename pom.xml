@@ -1,125 +1,133 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>metabrowser-extension</groupId>
+    <artifactId>metabrowser-extension</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <name>metabrowser-extension</name>
 
-  <groupId>metabrowser-extension</groupId>
-  <artifactId>metabrowser-extension</artifactId>
-  <version>0.1</version>
-  <name>metabrowser-extension</name>
+    <properties>
+        <lexevs.version>6.6.0.FINAL</lexevs.version>
+        <spring.version>5.3.19</spring.version>
+        <java.version>1.8</java.version>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+    </properties>
 
-  <repositories>
-	<repository>
-      <id>Informatics maven repo</id>
-      <name>Informatics Internal</name>
-      <layout>default</layout>
-      <url>http://informatics.mayo.edu/maven/content/repositories/releases</url>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </repository>
 
-	<repository>
-	  <id>nci.maven.snapshot</id>
-	  <name>NCI Maven Snapshot Repository</name>
-	  <url>https://ncimvn.nci.nih.gov/nexus/content/repositories/LexEVSSnapshots</url>
-	  <releases>
-		<enabled>false</enabled>
-	  </releases>
-	  <snapshots>
-		<enabled>true</enabled>
-	  </snapshots>
-   </repository>
+    <repositories>
+        <repository>
+            <id>nci.maven.releases</id>
+            <name>NCI Maven Release Repository</name>
+            <url>https://ncimvn.nci.nih.gov/nexus/content/repositories/LexEVSRelease</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>nci.maven.thirdparty</id>
+            <name>NCI Maven 3rd Party Repository</name>
+            <url>https://ncimvn.nci.nih.gov/nexus/content/repositories/LexEVS3rdParty</url>
+        </repository>
+        <repository>
+            <id>nci.maven.public</id>
+            <name>NCI Maven Public passthrough</name>
+            <url>https://ncimvn.nci.nih.gov/nexus/content/repositories/public</url>
+        </repository>
 
-   <repository>
-	<id>nci.maven.releases</id>
-	<name>NCI Maven Release Repository</name>
-	<url>https://ncimvn.nci.nih.gov/nexus/content/repositories/LexEVSRelease</url>
-	<releases>
-	  <enabled>true</enabled>
-	</releases>
-	  <snapshots>
-		<enabled>false</enabled>
-	</snapshots>
-  </repository>
+    </repositories>
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.10.1</version>
+                <configuration>
+                    <source/>
+                    <target/>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-jdbc</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
 
-  <repository>
-	<id>nci.maven.thirdparty</id>
-	<name>NCI Maven 3rd Party Repository</name>
-	<url>https://ncimvn.nci.nih.gov/nexus/content/repositories/LexEVS3rdParty</url>
-  </repository>
+        <dependency>
+            <groupId>com.healthmarketscience.sqlbuilder</groupId>
+            <artifactId>sqlbuilder</artifactId>
+            <version>2.0.11</version>
+        </dependency>
 
-  <repository>
-	<id>sonatype</id>
-	<url>https://oss.sonatype.org/content/repositories/releases/</url>
-	<name>Sonatype Releases</name>
-	</repository>
-  </repositories>
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20080701</version>
+        </dependency>
 
-  <build>
-    <plugins>
-      <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.10.1</version>
-        <configuration>
-          <source>1.8</source>
-          <target>1.8</target>
-        </configuration>
-      </plugin>
-	  <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.0.0-M7</version>
-        <configuration>
-          <skipTests>true</skipTests>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
 
-  <dependencies>
-  	<dependency>
-  		<groupId>org.springframework</groupId>
-  		<artifactId>spring-jdbc</artifactId>
-  		<version>3.1.0.RELEASE</version>
-  	</dependency>
-  	
-  	<dependency>
-	  <groupId>com.healthmarketscience.sqlbuilder</groupId>
-	  <artifactId>sqlbuilder</artifactId>
-	  <version>2.0.11</version>
-    </dependency>
-            
-    <dependency>
-      <groupId>org.json</groupId>
-      <artifactId>json</artifactId>
-      <version>20080701</version>
-    </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13</version>
+            <scope>test</scope>
+        </dependency>
 
-    <dependency>
-	  <groupId>junit</groupId>
-	  <artifactId>junit</artifactId>
-	  <version>4.7</version>
-	  <scope>test</scope>
-	</dependency>
+        <dependency>
+            <groupId>lexevs</groupId>
+            <artifactId>lexbig-impl</artifactId>
+            <version>${lexevs.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-slf4j-impl</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>slf4j</groupId>
+                    <artifactId>jcl-over-slf4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.springframework</groupId>
+                    <artifactId>spring-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.springframework.ws</groupId>
+                    <artifactId>spring-ws</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.springframework</groupId>
+                    <artifactId>spring-asm</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
 
-    <dependency>
-      <groupId>lexevs</groupId>
-      <artifactId>lexevs</artifactId>
-      <version>6.1.0</version>
-      <type>jar</type>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>lexevs</groupId>
-      <artifactId>abstract-rrf-loader</artifactId>
-      <version>6.1.0</version>
-    </dependency>
-
-    <dependency>
-      <groupId>lexevs</groupId>
-      <artifactId>loader-framework-core</artifactId>
-      <version>6.1.0</version>
-      </dependency>
+        <dependency>
+            <groupId>lexevs</groupId>
+            <artifactId>abstract-rrf-loader</artifactId>
+            <version>6.6.0.FINAL</version>
+        </dependency>
+        <dependency>
+            <groupId>lexevs</groupId>
+            <artifactId>loader-framework-core</artifactId>
+            <version>6.6.0.FINAL</version>
+        </dependency>
+        <dependency>
+            <groupId>lexevs</groupId>
+            <artifactId>meta-loader</artifactId>
+            <version>6.6.0.FINAL</version>
+        </dependency>
     </dependencies>
-
 </project>
